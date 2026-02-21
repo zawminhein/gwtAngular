@@ -7,32 +7,27 @@ import { RoleSetup } from './role-setup/role-setup';
 import { MenuSetup } from './menu-setup/menu-setup';
 
 export const routes: Routes = [
-    { path: '', redirectTo: 'login', pathMatch: 'full' },
 
-    { path: 'login', component: LoginComponent },
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
 
-    {
-        path: 'dashboard',
-        component: Dashboard,
-        canActivate: [AuthGuard],
-        children: [
-            {
-            path: 'setup',
-            children: [
-                {
-                    path: 'securityPolicy',   // ✅ match URL
-                    children: [
-                        { path: 'user', component: UserList },
-                        { path: 'role', component: RoleSetup },
-                        { path: 'menu', component: MenuSetup }
-                    ]
-                }
-            ]
-            },
+  { path: 'login', component: LoginComponent },
 
-            { path: '', redirectTo: 'home', pathMatch: 'full' }
-        ]
-    }
+  {
+    path: 'dashboard',
+    component: Dashboard,
+    canActivate: [AuthGuard],
+    children: [
+
+      { path: 'setup/securityPolicy/user', component: UserList },
+      { path: 'setup/securityPolicy/role', component: RoleSetup },
+      { path: 'setup/securityPolicy/menu', component: MenuSetup },
+
+    //   { path: '', redirectTo: 'setup/securityPolicy/user', pathMatch: 'full' }
+
+    ]
+  },
+
+  { path: '**', redirectTo: 'login' }
 
 ];
 

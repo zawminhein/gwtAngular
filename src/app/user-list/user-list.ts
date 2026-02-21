@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-user-list',
@@ -13,65 +14,116 @@ import { FormsModule } from '@angular/forms';
 })
 export class UserList implements OnInit {
 
-  userData: any[] = [];   // will hold user list
-  isLoading = false;
-
-  // Pagination (optional)
-  currentPage = 1;
-  itemsPerPage = 10;
-  totalItems = 0;
+  userData: any[] = [];
+  _roleData: any[] = [];
   searchtxt = '';
+  isLoading = false;
+  _orgId: string = '';
 
-  constructor(private http: HttpClient) {}
+  _pagerData = {
+    currentPage: 1,
+    itemsPerPage: 10,
+    totalItems: 0
+  };
+
+  private baseUrl = 'http://localhost:8080/iOPD/user/';
+  private atoken: string = '';
+
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+    private router: Router,
+    private cd: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
-    this.loadUsers();
+    const profileData = localStorage.getItem('profile');
+    if (!profileData) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const profile = JSON.parse(profileData);
+    this._orgId = profile.organizationID;
   }
 
-  loadUsers() {
-    this.isLoading = true;
+  ngAfterViewInit(): void {
+    this.getRoleData();
+    this.searchUser();
+  }
 
-    const url = 'http://localhost:8080/iOPD/user/getuserList';
+  // ========================
+  // HEADERS
+  // ========================
+  getHeaders(): HttpHeaders {
+    const authHeaders = this.authService.getAuthHeaders();
+    const headers = authHeaders.set('Content-Over', this._orgId);
+    console.log('Headers being sent:', headers);
+    return headers;
+  }
+
+  // ========================
+  // ROLE DATA
+  // ========================
+  getRoleData(): void {
+
+    const url = this.baseUrl + 'getRoleData';
+
+    this.http.get<any[]>(url, {
+      headers: this.getHeaders()
+    }).subscribe({
+      next: (data) => {
+        this._roleData = data ?? [];
+      },
+      error: (err) => {
+        console.error('Role API Error:', err);
+      }
+    });
+  }
+
+  // ========================
+  // USER LIST
+  // ========================
+  searchUser(): void {
+
+    this.isLoading = true;
+    this.cd.detectChanges();   // 🔥 tell Angular update immediately
+
+    const url = this.baseUrl + 'getuserList';
+
     const body = {
       searchtxt: this.searchtxt,
-      currentPage: this.currentPage,
-      pageSize: this.itemsPerPage
+      currentPage: this._pagerData.currentPage,
+      pageSize: this._pagerData.itemsPerPage
     };
 
-    this.http.post(url, body).subscribe(
-      (res: any) => {
-        this.userData = res.userlist || [];
-        this.totalItems = res.totalCount || this.userData.length;
+    this.http.post<any>(url, body, {
+      headers: this.getHeaders()
+    }).subscribe({
+      next: (data) => {
+
+        this.userData = data?.userlist ?? [];
+        this._pagerData.totalItems = data?.totalCount ?? 0;
+
         this.isLoading = false;
+        this.cd.detectChanges();   // 🔥 stabilize again
       },
-      err => {
-        console.error('Error loading users', err);
+      error: (err) => {
+        console.error('User API Error:', err);
         this.isLoading = false;
+        this.cd.detectChanges();
       }
-    );
+    });
   }
 
-  // Optional: for search input
-  search() {
-    this.currentPage = 1;
-    this.loadUsers();
+  changePage(page: number): void {
+    this._pagerData.currentPage = page;
+    this.searchUser();
   }
 
-  clear() {
+  clear(): void {
     this.searchtxt = '';
-    this.currentPage = 1;
-    this.loadUsers();
-  }
-
-  // Optional: go to user details (old goDetail)
-  goDetail(user: any) {
-    console.log('Selected User:', user);
-    // You can navigate or show edit form
-  }
-
-  // Optional pagination handler
-  changePage(page: number) {
-    this.currentPage = page;
-    this.loadUsers();
+    this._pagerData.currentPage = 1;
+    this.searchUser();
   }
 }
