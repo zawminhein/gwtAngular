@@ -1,102 +1,208 @@
-<div class="container mt-3">
+<div class="container-fluid">
 
-  <h3 class="mb-3">User List</h3>
+  <form autocomplete="off">
+    <fieldset>
 
-  <!-- ================= SEARCH SECTION ================= -->
-  <div class="row mb-3">
+      <!-- SWITCH -->
+      <!-- ================= SWITCH TABS ================= -->
+      <div class="d-flex mb-3 mt-2">
 
-    <!-- Search Text -->
-    <div class="col-md-4">
-      <input
-        type="text"
-        class="form-control"
-        placeholder="Search user..."
-        [(ngModel)]="searchtxt"
-        (keyup.enter)="searchUser()"
-      />
-    </div>
+        <button
+          class="btn rounded-0"
+          [ngClass]="swt === '1' ? 'btn-primary' : 'btn-light'"
+          (click)="changeTab('1')">
+          List
+        </button>
 
-    <!-- Role Dropdown -->
-    <div class="col-md-3">
-      <select class="form-select">
-        <option value="">All Roles</option>
-        <option *ngFor="let role of _roleData" [value]="role.roleId">
-          {{ role.roleName }}
-        </option>
-      </select>
-    </div>
+        <button
+          class="btn rounded-0 ms-1"
+          [ngClass]="swt === '2' ? 'btn-primary' : 'btn-light'"
+          (click)="changeTab('2')">
+          User
+        </button>
 
-    <!-- Buttons -->
-    <div class="col-md-5 text-end">
-      <button class="btn btn-primary me-2" (click)="searchUser()">
-        Search
-      </button>
-      <button class="btn btn-secondary" (click)="clear()">
-        Clear
-      </button>
-    </div>
+      </div>
 
-  </div>
+      <!-- LIST VIEW -->
+      <div class="card" *ngIf="swt === '1'">
+        <div class="card-body">
 
-  <!-- ================= LOADING ================= -->
-  <div *ngIf="isLoading === true" class="text-center my-4">
-    <div class="spinner-border text-primary"></div>
-  </div>
+          <div class="row mb-2">
+            <div class="col-sm-4 d-flex">
+              <input type="text"
+                [(ngModel)]="searchtxt"
+                (keyup.enter)="search()"
+                class="form-control form-control-sm"
+                placeholder="Search..."
+                [ngModelOptions]="{standalone: true}" />
 
-  <!-- ================= TABLE ================= -->
-  <div *ngIf="isLoading === false">
+              <button type="button"
+                class="btn btn-sm ms-2 btn-primary"
+                (click)="search()">
+                <i class="fa fa-search"></i>
+              </button>
 
-    <table class="table table-bordered table-hover">
+              <button type="button"
+                class="btn btn-sm ms-2 btn-secondary"
+                (click)="clear()">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+          </div>
 
-      <thead class="table-light">
-        <tr>
-          <th>User ID</th>
-          <th>Username</th>
-        </tr>
-      </thead>
+          <!-- ================= PAGINATION ================= -->
+          <div class="d-flex align-items-center mt-3 flex-wrap gap-2">
 
-      <tbody>
+            <!-- LEFT: Buttons -->
+            <div class="d-flex gap-2">
 
-        <!-- Data Rows -->
-        <tr *ngFor="let user of userData">
-          <td>{{ user.userid }}</td>
-          <td>{{ user.username }}</td>
-        </tr>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                [disabled]="_pagerData.currentPage === 1"
+                (click)="changePage(1)">
+                «
+              </button>
 
-        <!-- Empty State -->
-        <tr *ngIf="userData.length === 0">
-          <td colspan="3" class="text-center text-muted">
-            No users found
-          </td>
-        </tr>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                [disabled]="_pagerData.currentPage === 1"
+                (click)="changePage(_pagerData.currentPage - 1)">
+                ‹
+              </button>
 
-      </tbody>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                [disabled]="(_pagerData.currentPage * _pagerData.itemsPerPage) >= _pagerData.totalItems"
+                (click)="changePage(_pagerData.currentPage + 1)">
+                ›
+              </button>
 
-    </table>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                [disabled]="(_pagerData.currentPage * _pagerData.itemsPerPage) >= _pagerData.totalItems"
+                (click)="changePage(totalPages)">
+                »
+              </button>
 
-  </div>
+            </div>
 
-  <!-- ================= PAGINATION ================= -->
-  <div class="d-flex justify-content-between align-items-center mt-3">
+            <!-- RIGHT: Status -->
+            <div>
+              <small class="text-muted">
+                Showing
+                <strong>{{ startItem }}</strong>
+                –
+                <strong>{{ endItem }}</strong>
+                of
+                <strong>{{ _pagerData.totalItems }}</strong>
+                |
+                Page
+                <strong>{{ _pagerData.currentPage }}</strong>
+                /
+                <strong>{{ totalPages }}</strong>
+              </small>
+            </div>
 
-    <button
-      class="btn btn-outline-primary"
-      [disabled]="_pagerData.currentPage === 1"
-      (click)="changePage(_pagerData.currentPage - 1)">
-      Previous
-    </button>
+          </div>
 
-    <span>
-      Page {{ _pagerData.currentPage }}
-    </span>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-striped">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                </tr>
+              </thead>
 
-    <button
-      class="btn btn-outline-primary"
-      [disabled]="userData.length < _pagerData.itemsPerPage"
-      (click)="changePage(_pagerData.currentPage + 1)">
-      Next
-    </button>
+              <tbody>
+                <tr *ngFor="let j of userData">
+                  <td (click)="goDetail(j)" class="clickable">
+                    {{ j.userid }}
+                  </td>
+                  <td>{{ j.username }}</td>
+                </tr>
 
-  </div>
+                <tr *ngIf="userData.length === 0">
+                  <td colspan="2" class="text-center text-muted">
+                    No users found
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
+        </div>
+      </div>
+
+      <!-- USER FORM -->
+      <div class="card mb-2" *ngIf="swt === '2'">
+        <div class="card-body">
+
+          <div class="mb-3">
+            <button type="button" class="btn btn-sm btn-primary" (click)="goNew()">New</button>
+            <button type="button" class="btn btn-sm btn-success ms-2" (click)="goSave()">Save</button>
+            <button type="button" class="btn btn-sm btn-danger ms-2" (click)="goDelete()">Delete</button>
+          </div>
+
+          <div class="row">
+            <div class="col-sm-4">
+
+              <div class="mb-2">
+                <label>ID</label>
+                <input type="text"
+                  [(ngModel)]="_objd.id"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-control form-control-sm" />
+              </div>
+
+              <div class="mb-2">
+                <label>Name</label>
+                <input type="text"
+                  [(ngModel)]="_objd.name"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-control form-control-sm" />
+              </div>
+
+              <div class="mb-2">
+                <label>Password</label>
+                <input type="password"
+                  [(ngModel)]="_objd.password"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-control form-control-sm" />
+              </div>
+
+            </div>
+
+            <div class="col-sm-5">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Code</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let obj of _roleData">
+                      <td>
+                        <input type="checkbox"
+                          [(ngModel)]="obj.checkstatus"
+                          [ngModelOptions]="{standalone: true}" autofocus/>
+                      </td>
+                      <td>{{ obj.t1 }}</td>
+                      <td>{{ obj.t2 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </fieldset>
+  </form>
 </div>
