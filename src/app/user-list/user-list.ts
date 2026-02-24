@@ -50,10 +50,17 @@ export class UserList implements OnInit, OnDestroy {
   };
 
   _objd: any = {
+    u5syskey: '',
     id: '',
     name: '',
-    password: ''
+    password: '',
+    confirmPassword: '',
+    roleData: []
   };
+
+  get isEditMode(): boolean {
+    return !!this._objd?.u5syskey;
+  }
 
   private baseUrl = 'http://localhost:8080/iOPD/user/';
 
@@ -188,21 +195,22 @@ export class UserList implements OnInit, OnDestroy {
   goDetail(user: any): void {
 
     this._objd = {
+      u5syskey: user.u5sys ?? user.u5syskey ?? '',
       id: user.userid,
       name: user.username,
-      password: user.password
+      password: user.password,
+      confirmPassword: user.password,
+      roleData: []
     };
 
-    // 1️⃣ Reset all role selections
-    this._roleData.forEach(role => role.checkstatus = false);
+    // reset all roles
+    this._roleData.forEach(r => r.checkstatus = false);
 
-    // 2️⃣ Apply user's roles
-    if (user.rolelist && user.rolelist.length) {
+    // apply user roles
+    if (user.rolelist?.length) {
       user.rolelist.forEach((ur: any) => {
-        const match = this._roleData.find(r => r.rolesys === ur.rolesys);
-        if (match) {
-          match.checkstatus = true;
-        }
+        const role = this._roleData.find(r => r.syskey === ur.rolesys);
+        if (role) role.checkstatus = true;
       });
     }
 
@@ -210,15 +218,113 @@ export class UserList implements OnInit, OnDestroy {
   }
 
   goNew(): void {
-    this._objd = { id: '', name: '', password: '' };
+    this._objd = {
+      u5syskey: '',
+      id: '',
+      name: '',
+      password: '',
+      confirmPassword: '',
+      roleData: []
+    };
+
+    // reset roles
+    this._roleData.forEach(r => r.checkstatus = false);
+
+    this.swt = '2';
   }
 
   goSave(): void {
-    console.log('Save clicked', this._objd);
+
+    this.prepareSaveData();
+    console.log(this._objd.name, this._objd.id);
+    
+
+    if (!this._objd.id || !this._objd.name) {
+      alert('User ID and Name required');
+      return;
+    }
+
+    if (this._objd.password !== this._objd.confirmPassword) {
+      alert('Password mismatch');
+      return;
+    }
+
+    if (this._objd.roleData.length === 0) {
+      alert('Select at least one role');
+      return;
+    }
+
+    this.isLoading = true;
+
+    const url = this.baseUrl + 'saveuser';
+    const body = { userdata: this._objd };
+
+    this.http.post<any>(url, body, {
+      headers: this.getHeaders()
+    }).subscribe({
+      next: (res) => {
+        console.log("Save response", res);
+        
+        this.isLoading = false;
+        this.goNew();
+        this.loadUsersFromServer();
+        this.swt = '1';
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Save error', err);
+      }
+    });
+  }
+
+  prepareSaveData(): void {
+    this._objd.roleData = this._roleData
+      .filter(r => r.checkstatus)
+      .map(r => ({
+        syskey: r.syskey
+      }));
   }
 
   goDelete(): void {
-    console.log('Delete clicked');
+
+    if (!this._objd.u5syskey) {
+      alert('No record to delete');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    this.isLoading = true;
+
+    const url = this.baseUrl + 'delete/' + this._objd.u5syskey;
+
+    this.http.get<any>(url, {
+      headers: this.getHeaders()
+    }).subscribe({
+      next: () => {
+
+        // ✅ Reset form
+        this._objd = this.goNew();
+
+        // ✅ Reset role selection
+        this._roleData.forEach(r => r.checkstatus = false);
+
+        // ✅ Switch back to list
+        this.swt = '1';
+
+        // ✅ Reload users
+        this.loadUsersFromServer();
+
+      },
+      error: () => {
+        alert('Delete failed');
+      },
+      complete: () => {
+        this.isLoading = false;
+      }
+    });
   }
 
   // ================= ROLE =================
@@ -230,10 +336,7 @@ export class UserList implements OnInit, OnDestroy {
       headers: this.getHeaders()
     }).subscribe({
       next: (data) => {
-        this._roleData = (data ?? []).map(role => ({
-          ...role,
-          checkstatus: false
-        }));
+        this._roleData = data ?? [];
       },
       error: (err) => {
         console.error('Role API Error:', err);

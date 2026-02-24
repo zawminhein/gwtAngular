@@ -140,8 +140,19 @@
 
           <div class="mb-3">
             <button type="button" class="btn btn-sm btn-primary" (click)="goNew()">New</button>
-            <button type="button" class="btn btn-sm btn-success ms-2" (click)="goSave()">Save</button>
-            <button type="button" class="btn btn-sm btn-danger ms-2" (click)="goDelete()">Delete</button>
+            
+            <button
+              class="btn btn-sm ms-2 btn-primary"
+              (click)="goSave()"
+              [disabled]="isLoading">
+              {{ isEditMode ? 'Update' : 'Save' }}
+            </button>
+            
+            <button type="button" class="btn btn-sm btn-danger ms-2" 
+              (click)="goDelete()" 
+              [disabled]="!_objd.u5syskey || isLoading">
+              Delete
+            </button>
           </div>
 
           <div class="row">
@@ -167,6 +178,14 @@
                 <label>Password</label>
                 <input type="password"
                   [(ngModel)]="_objd.password"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-control form-control-sm" />
+              </div>
+
+              <div class="mb-2">
+                <label>Confirm Password</label>
+                <input type="password"
+                  [(ngModel)]="_objd.confirmPassword"
                   [ngModelOptions]="{standalone: true}"
                   class="form-control form-control-sm" />
               </div>
