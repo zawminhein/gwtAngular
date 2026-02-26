@@ -20,22 +20,29 @@
 
       <!-- SWITCH -->
       <!-- ================= SWITCH TABS ================= -->
-      <div class="d-flex mb-3 mt-2">
+      <div class="switch-wrapper mb-3 mt-2">
+        <div class="switch-container">
+          <!-- Sliding background -->
+          <div 
+            class="switch-slider"
+            [class.slide-right]="swt === '2'">
+          </div>
 
-        <button
-          class="btn rounded-0"
-          [ngClass]="swt === '1' ? 'btn-primary' : 'btn-light'"
-          (click)="changeTab('1')">
-          List
-        </button>
+          <!-- Buttons -->
+          <div 
+            class="switch-option"
+            [class.active]="swt === '1'"
+            (click)="changeTab('1')">
+            List
+          </div>
 
-        <button
-          class="btn rounded-0 ms-1"
-          [ngClass]="swt === '2' ? 'btn-primary' : 'btn-light'"
-          (click)="changeTab('2')">
-          User
-        </button>
-
+          <div 
+            class="switch-option"
+            [class.active]="swt === '2'"
+            (click)="changeTab('2')">
+            User
+          </div>
+        </div>
       </div>
 
       <!-- LIST VIEW -->

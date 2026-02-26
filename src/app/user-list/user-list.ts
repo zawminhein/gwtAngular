@@ -4,21 +4,16 @@ import {
   OnInit,
   OnDestroy
 } from '@angular/core';
-import {
-  HttpClient,
-  HttpClientModule,
-  HttpHeaders
-} from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../services/auth.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
+import { UserService } from '../services/user.service';
 
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './user-list.html',
   styleUrls: ['./user-list.css']
 })
@@ -49,28 +44,19 @@ export class UserList implements OnInit, OnDestroy {
     totalItems: 0
   };
 
-  _objd: any = {
-    u5syskey: '',
-    id: '',
-    name: '',
-    password: '',
-    confirmPassword: '',
-    roleData: [],
-    u12syskey: ''
-  };
+  _objd: any = this.getEmptyUser();
 
   get isEditMode(): boolean {
     return !!this._objd?.u5syskey;
   }
 
+  private messageTimeout: any;
   message: string = '';
   messageType: 'success' | 'error' | 'warning' | '' = '';
 
-  private baseUrl = 'http://localhost:8080/iOPD/user/';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService,
+    private userService: UserService,
     private router: Router,
     private cd: ChangeDetectorRef
   ) {}
@@ -79,6 +65,7 @@ export class UserList implements OnInit, OnDestroy {
   ngOnInit(): void {
 
     const profileData = localStorage.getItem('profile');
+
     if (!profileData) {
       this.router.navigate(['/login']);
       return;
@@ -105,42 +92,26 @@ export class UserList implements OnInit, OnDestroy {
     this.loadUsersFromServer();
   }
 
-  // ================= HEADERS =================
-  getHeaders(): HttpHeaders {
-    return this.authService
-      .getAuthHeaders()
-      .set('Content-Over', this._orgId);
-  }
-
   // ================= LOAD USERS =================
   loadUsersFromServer(): void {
 
     this.isLoading = true;
 
-    const url = this.baseUrl + 'getuserList';
-
-    const body = {
-      searchtxt: '',
-      currentPage: 1,
-      pageSize: 9999
-    };
-
-    this.http.post<any>(url, body, {
-      headers: this.getHeaders()
-    }).subscribe({
-      next: (data) => {
-        this.allUsers = data?.userlist ?? [];
-        this._pagerData.totalItems = this.allUsers.length;
-        this.applyFilterAndPagination();
-      },
-      error: (err) => {
-        console.error('User API Error:', err);
-      },
-      complete: () => {
-        this.isLoading = false;
-        this.cd.detectChanges();
-      }
-    });
+    this.userService.getUsers(this._orgId)
+      .subscribe({
+        next: (data: any) => {
+          this.allUsers = data?.userlist ?? [];
+          this._pagerData.totalItems = this.allUsers.length;
+          this.applyFilterAndPagination();
+        },
+        error: () => {
+          this.showMessage('error', 'Failed to load users');
+        },
+        complete: () => {
+          this.isLoading = false;
+          this.cd.detectChanges();
+        }
+      });
   }
 
   // ================= FILTER + PAGINATION =================
@@ -196,8 +167,8 @@ export class UserList implements OnInit, OnDestroy {
     this.loadUsersFromServer();
   }
 
+  // ================= DETAIL =================
   goDetail(user: any): void {
-    console.log(user);    
 
     this._objd = {
       u5syskey: user.u5sys ?? user.u5syskey ?? '',
@@ -209,10 +180,8 @@ export class UserList implements OnInit, OnDestroy {
       u12syskey: user.u12sys ?? ''
     };
 
-    // reset all roles
     this._roleData.forEach(r => r.checkstatus = false);
 
-    // apply user roles
     if (user.rolelist?.length) {
       user.rolelist.forEach((ur: any) => {
         const role = this._roleData.find(r => r.syskey === ur.rolesys);
@@ -224,25 +193,15 @@ export class UserList implements OnInit, OnDestroy {
   }
 
   goNew(): void {
-    this._objd = {
-      u5syskey: '',
-      id: '',
-      name: '',
-      password: '',
-      confirmPassword: '',
-      roleData: [],
-      u12syskey: ''
-    };
-
-    // reset roles
+    this._objd = this.getEmptyUser();
     this._roleData.forEach(r => r.checkstatus = false);
-
     this.swt = '2';
   }
 
+  // ================= SAVE =================
   goSave(): void {
 
-    this.prepareSaveData();    
+    this.prepareSaveData();
 
     if (!this._objd.id || !this._objd.name) {
       this.showMessage('warning', 'User ID and Name required');
@@ -261,34 +220,30 @@ export class UserList implements OnInit, OnDestroy {
 
     this.isLoading = true;
 
-    const url = this.baseUrl + 'saveuser';
-    const body = { userdata: this._objd };
-    // console.log('Sending body:', body);  // Add logging for request body
+    this.userService.saveUser(this._objd, this._orgId)
+      .subscribe({
+        next: (res) => {
 
-    this.http.post<any>(url, body, {
-      headers: this.getHeaders()
-    }).subscribe({
-      next: (res) => {
-        this.isLoading = false;
+          this.isLoading = false;
 
-        if (res && (res.message === 'Success' || res.message === 'Update Success')) {
-          this.showMessage('success', 'User saved successfully');
-          this.goNew();
-          this.loadUsersFromServer();
-          this.swt = '1';
-        } 
-        else if (res && res.message === 'UserExist') {
-          this.showMessage('warning', 'User already exists');
-        } 
-        else {
-          this.showMessage('error', 'Failed to save user');
+          if (res?.message === 'Success' || res?.message === 'Update Success') {
+            this.showMessage('success', 'User saved successfully');
+            this.goNew();
+            this.loadUsersFromServer();
+            this.swt = '1';
+          }
+          else if (res?.message === 'UserExist') {
+            this.showMessage('warning', 'User already exists');
+          }
+          else {
+            this.showMessage('error', 'Failed to save user');
+          }
+        },
+        error: () => {
+          this.isLoading = false;
+          this.showMessage('error', 'Error while saving');
         }
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.showMessage('error', 'An error occurred while saving');
-      }
-    });
+      });
   }
 
   prepareSaveData(): void {
@@ -299,10 +254,10 @@ export class UserList implements OnInit, OnDestroy {
       }));
   }
 
+  // ================= DELETE =================
   goDelete(): void {
 
     if (!this._objd.u5syskey) {
-      // alert('No record to delete');
       this.showMessage('warning', 'No record to delete');
       return;
     }
@@ -313,49 +268,40 @@ export class UserList implements OnInit, OnDestroy {
 
     this.isLoading = true;
 
-    const url = this.baseUrl + 'delete/' + this._objd.u5syskey;
+    this.userService.deleteUser(this._objd.u5syskey, this._orgId)
+      .subscribe({
+        next: (res) => {
 
-    this.http.get<any>(url, {
-      headers: this.getHeaders()
-    }).subscribe({
-      next: (res) => {
-        console.log("Delete response:", res.message);
-        
-        this.isLoading = false;
-        if (res.message === 'SUCCESS') {  // Assuming backend returns similar message for delete
-          // alert('User deleted successfully');
-          this.showMessage('success', 'User deleted successfully');
-          this.goNew();
-          this.loadUsersFromServer();
-          this.swt = '1';
-        } else {
-          // alert('Failed to delete user');
-          this.showMessage('error', 'Failed to delete user');
+          this.isLoading = false;
+
+          if (res?.message === 'SUCCESS') {
+            this.showMessage('success', 'User deleted successfully');
+            this.goNew();
+            this.loadUsersFromServer();
+            this.swt = '1';
+          } else {
+            this.showMessage('error', 'Failed to delete user');
+          }
+        },
+        error: () => {
+          this.isLoading = false;
+          this.showMessage('error', 'Delete failed');
         }
-      },
-      error: () => {
-        this.isLoading = false;
-        // alert('Delete failed');
-        this.showMessage('error', 'An error occurred while deleting');
-      }
-    });
+      });
   }
 
   // ================= ROLE =================
   getRoleData(): void {
 
-    const url = this.baseUrl + 'getRoleData';
-
-    this.http.get<any[]>(url, {
-      headers: this.getHeaders()
-    }).subscribe({
-      next: (data) => {
-        this._roleData = data ?? [];
-      },
-      error: (err) => {
-        console.error('Role API Error:', err);
-      }
-    });
+    this.userService.getRoles(this._orgId)
+      .subscribe({
+        next: (data) => {
+          this._roleData = data ?? [];
+        },
+        error: () => {
+          this.showMessage('error', 'Failed to load roles');
+        }
+      });
   }
 
   // ================= PAGINATION GETTERS =================
@@ -368,6 +314,7 @@ export class UserList implements OnInit, OnDestroy {
 
   get startItem(): number {
     if (this._pagerData.totalItems === 0) return 0;
+
     return (
       (this._pagerData.currentPage - 1) *
       this._pagerData.itemsPerPage + 1
@@ -384,13 +331,32 @@ export class UserList implements OnInit, OnDestroy {
       : end;
   }
 
+  // ================= UTIL =================
+  private getEmptyUser() {
+    return {
+      u5syskey: '',
+      id: '',
+      name: '',
+      password: '',
+      confirmPassword: '',
+      roleData: [],
+      u12syskey: ''
+    };
+  }
+
   showMessage(type: 'success' | 'error' | 'warning', text: string) {
+
+    if (this.messageTimeout) {
+      clearTimeout(this.messageTimeout);
+    }
+
     this.messageType = type;
     this.message = text;
 
-    setTimeout(() => {
+    this.messageTimeout = setTimeout(() => {
       this.message = '';
       this.messageType = '';
-    }, 3000); // auto hide after 3s
+      this.cd.detectChanges();
+    }, 3000);
   }
 }
