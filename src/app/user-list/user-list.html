@@ -127,32 +127,42 @@
 
           </div>
 
-          <div class="table-responsive">
-            <table class="table table-sm table-hover table-striped">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                </tr>
-              </thead>
+          <div class="position-relative">
 
-              <tbody>
-                <tr *ngFor="let j of userData">
-                  <td (click)="goDetail(j)" class="clickable">
-                    {{ j.userid }}
-                  </td>
-                  <td>{{ j.username }}</td>
-                </tr>
+            <!-- Overlay -->
+            <div *ngIf="isLoading"
+                class="loading-overlay d-flex justify-content-center align-items-center">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
 
-                <tr *ngIf="userData.length === 0">
-                  <td colspan="2" class="text-center text-muted">
-                    No users found
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <!-- Table -->
+            <div class="table-responsive" [class.table-disabled]="isLoading">
+              <table class="table table-sm table-hover table-striped mb-0">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr *ngFor="let j of userData">
+                    <td (click)="goDetail(j)" class="clickable">
+                      {{ j.userid }}
+                    </td>
+                    <td>{{ j.username }}</td>
+                  </tr>
+
+                  <tr *ngIf="!isLoading && userData.length === 0">
+                    <td colspan="2" class="text-center text-muted">
+                      No users found
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
-
         </div>
       </div>
 

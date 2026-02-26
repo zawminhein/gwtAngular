@@ -1,18 +1,17 @@
-import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { MainService } from '../main.service';
-// import JSEncrypt from 'jsencrypt';
-// import * as CryptoJS from 'crypto-js';
+import { finalize, timeout } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'], // fixed typo: styleUrl → styleUrls
+  styleUrls: ['./login.component.css'],
 })
 export class LoginComponent {
 
@@ -26,59 +25,43 @@ export class LoginComponent {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private main: MainService
-  ) {}
+    private main: MainService,
+    private cdr: ChangeDetectorRef
+  ) { }
 
-  login() {
-
-  if (!this.username || !this.password || !this.domain) {
-    this.errorMessage = "All fields are required";
-    return;
-  }
-
-  this.isLoading = true;
-  this.errorMessage = '';
-
-  this.authService.login(
-    this.username,
-    this.password,  // 🔥 plain password
-    this.domain
-  ).subscribe({
-
-    next: (res: any) => {
-
-      this.isLoading = false;
-
-      if (res.syskey === '---') {
-        this.errorMessage = "Invalid domain";
-        return;
-      }
-
-      if (!res.syskey) {
-        this.errorMessage = "Invalid username or password";
-        return;
-      }
-
-      console.log(res);
-      
-      this.main.setProfile(res);
-
-      // ✅ SUCCESS
-      localStorage.setItem("userName", res.userName);
-      localStorage.setItem("organizationID", res.organizationID);
-      localStorage.setItem("userSK", res.syskey);
-      localStorage.setItem('profile', JSON.stringify(res));
-      
-      this.router.navigate(['/dashboard']);
-    },
-
-    error: (err) => {
-      this.isLoading = false;
-      this.errorMessage = "Login failed";
-      console.error(err);
+  login(event?: Event) {
+    if (event) event.preventDefault();  // prevent default form submission
+    if (!this.username || !this.password || !this.domain) {
+      this.errorMessage = "All fields are required";
+      return;
     }
 
-  });
-}
+    this.isLoading = true;
+    this.errorMessage = '';
 
+    this.authService.login(this.username, this.password, this.domain)
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: res => {
+          this.main.setProfile(res);
+          localStorage.setItem("userName", res.userName);
+          localStorage.setItem("organizationID", res.organizationID);
+          localStorage.setItem("userSK", res.syskey);
+          localStorage.setItem('profile', JSON.stringify(res));
+
+          this.router.navigate(['/dashboard']);
+        },
+        error: err => {
+          console.error(err);
+          this.errorMessage = err.message || "Server error";
+          this.cdr.detectChanges();
+        }
+      });
+
+      console.log(this.isLoading);
+      
+  }
 }

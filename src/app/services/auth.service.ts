@@ -1,13 +1,15 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { tap } from 'rxjs/operators';
+import { tap, map } from 'rxjs/operators';
+import { throwError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private baseUrl = "http://localhost:8080/iOPD";
+  private baseUrl = environment.apiUrl; 
   private token = '';
 
   constructor(private http: HttpClient) {}
@@ -16,28 +18,24 @@ export class AuthService {
   // LOGIN
   // =========================
   login(userID: string, password: string, domain: string) {
+    const body = { userID, password };
 
-    const body = {
-      userID: userID,
-      password: password
-    };
-
-    return this.http.post<any>(
-      `${this.baseUrl}/main/logindebug/${domain}`,
-      body
-    ).pipe(
-      tap((res: any) => {
-
-        // 🔥 Adjust based on your actual response structure
-        if (res?.atoken) {
-          this.token = res.atoken;
-          localStorage.setItem('atoken', res.atoken);
-        }
-
-        // If your response is nested like res.data.atoken:
-        // this.token = res.data.atoken;
-      })
-    );
+    return this.http.post<any>(`${this.baseUrl}/main/logindebug/${domain}`, body)
+      .pipe(
+        tap((res: any) => {
+          if (res?.atoken) {
+            this.token = res.atoken;
+            localStorage.setItem('atoken', res.atoken);
+          }
+        }),
+        map(res => {
+          // ❌ treat invalid syskey as error
+          if (!res || res.syskey === '---' || !res.syskey) {
+            throw new Error('Invalid domain or username/password');
+          }
+          return res;
+        })
+      );
   }
 
   // =========================

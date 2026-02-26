@@ -4,7 +4,13 @@
       <div class="col-lg-4 mx-auto">
         <div class="bg-white p-5 rounded shadow-lg">
 
-          <form (ngSubmit)="login()">
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="alert alert-danger py-2 small">
+            <i class="fa fa-exclamation-circle me-2"></i>
+            {{ errorMessage }}
+          </div>
+
+          <form (ngSubmit)="login($event)">
 
             <h3 class="mb-3 text-center fw-bold"
                 style="font-family:'Times New Roman', Times, serif;">
@@ -23,6 +29,7 @@
                   placeholder="User ID"
                   name="username"
                   [(ngModel)]="username"
+                  (ngModelChange)="errorMessage=''"
                   autofocus
                 >
               </div>
@@ -40,6 +47,7 @@
                   placeholder="Password"
                   name="password"
                   [(ngModel)]="password"
+                  (ngModelChange)="errorMessage=''"
                 >
               </div>
             </div>
@@ -56,6 +64,7 @@
                   placeholder="Domain"
                   name="domain"
                   [(ngModel)]="domain"
+                  (ngModelChange)="errorMessage=''"
                 >
               </div>
             </div>
@@ -75,9 +84,23 @@
             </div>
 
             <!-- Button -->
-            <button type="submit" class="btn btn-outline-primary w-100 mt-2">
-              <i class="fa fa-sign-in-alt me-2"></i>
-              Sign In
+            <button 
+              type="submit" 
+              class="btn btn-outline-primary w-100 mt-2"
+              [disabled]="isLoading">
+
+              <!-- Normal State -->
+              <ng-container *ngIf="!isLoading">
+                <i class="fa fa-sign-in-alt me-2"></i>
+                Sign In
+              </ng-container>
+
+              <!-- Loading State -->
+              <ng-container *ngIf="isLoading">
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                Signing In...
+              </ng-container>
+
             </button>
 
           </form>
