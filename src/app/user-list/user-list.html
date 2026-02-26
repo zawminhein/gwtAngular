@@ -1,5 +1,20 @@
 <div class="container-fluid">
 
+  <div *ngIf="message"
+      class="alert mt-2"
+      [ngClass]="{
+        'alert-success': messageType === 'success',
+        'alert-danger': messageType === 'error',
+        'alert-warning': messageType === 'warning'
+      }">
+
+    {{ message }}
+
+    <button type="button" class="btn-close float-end"
+            (click)="message=''">
+    </button>
+  </div>
+
   <form autocomplete="off">
     <fieldset>
 

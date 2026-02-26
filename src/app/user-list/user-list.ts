@@ -55,12 +55,16 @@ export class UserList implements OnInit, OnDestroy {
     name: '',
     password: '',
     confirmPassword: '',
-    roleData: []
+    roleData: [],
+    u12syskey: ''
   };
 
   get isEditMode(): boolean {
     return !!this._objd?.u5syskey;
   }
+
+  message: string = '';
+  messageType: 'success' | 'error' | 'warning' | '' = '';
 
   private baseUrl = 'http://localhost:8080/iOPD/user/';
 
@@ -193,6 +197,7 @@ export class UserList implements OnInit, OnDestroy {
   }
 
   goDetail(user: any): void {
+    console.log(user);    
 
     this._objd = {
       u5syskey: user.u5sys ?? user.u5syskey ?? '',
@@ -200,7 +205,8 @@ export class UserList implements OnInit, OnDestroy {
       name: user.username,
       password: user.password,
       confirmPassword: user.password,
-      roleData: []
+      roleData: [],
+      u12syskey: user.u12sys ?? ''
     };
 
     // reset all roles
@@ -224,7 +230,8 @@ export class UserList implements OnInit, OnDestroy {
       name: '',
       password: '',
       confirmPassword: '',
-      roleData: []
+      roleData: [],
+      u12syskey: ''
     };
 
     // reset roles
@@ -235,22 +242,20 @@ export class UserList implements OnInit, OnDestroy {
 
   goSave(): void {
 
-    this.prepareSaveData();
-    console.log(this._objd.name, this._objd.id);
-    
+    this.prepareSaveData();    
 
     if (!this._objd.id || !this._objd.name) {
-      alert('User ID and Name required');
+      this.showMessage('warning', 'User ID and Name required');
       return;
     }
 
     if (this._objd.password !== this._objd.confirmPassword) {
-      alert('Password mismatch');
+      this.showMessage('error', 'Password mismatch');
       return;
     }
 
     if (this._objd.roleData.length === 0) {
-      alert('Select at least one role');
+      this.showMessage('warning', 'Select at least one role');
       return;
     }
 
@@ -258,21 +263,30 @@ export class UserList implements OnInit, OnDestroy {
 
     const url = this.baseUrl + 'saveuser';
     const body = { userdata: this._objd };
+    // console.log('Sending body:', body);  // Add logging for request body
 
     this.http.post<any>(url, body, {
       headers: this.getHeaders()
     }).subscribe({
       next: (res) => {
-        console.log("Save response", res);
-        
         this.isLoading = false;
-        this.goNew();
-        this.loadUsersFromServer();
-        this.swt = '1';
+
+        if (res && (res.message === 'Success' || res.message === 'Update Success')) {
+          this.showMessage('success', 'User saved successfully');
+          this.goNew();
+          this.loadUsersFromServer();
+          this.swt = '1';
+        } 
+        else if (res && res.message === 'UserExist') {
+          this.showMessage('warning', 'User already exists');
+        } 
+        else {
+          this.showMessage('error', 'Failed to save user');
+        }
       },
       error: (err) => {
         this.isLoading = false;
-        console.error('Save error', err);
+        this.showMessage('error', 'An error occurred while saving');
       }
     });
   }
@@ -288,7 +302,8 @@ export class UserList implements OnInit, OnDestroy {
   goDelete(): void {
 
     if (!this._objd.u5syskey) {
-      alert('No record to delete');
+      // alert('No record to delete');
+      this.showMessage('warning', 'No record to delete');
       return;
     }
 
@@ -303,26 +318,25 @@ export class UserList implements OnInit, OnDestroy {
     this.http.get<any>(url, {
       headers: this.getHeaders()
     }).subscribe({
-      next: () => {
-
-        // ✅ Reset form
-        this._objd = this.goNew();
-
-        // ✅ Reset role selection
-        this._roleData.forEach(r => r.checkstatus = false);
-
-        // ✅ Switch back to list
-        this.swt = '1';
-
-        // ✅ Reload users
-        this.loadUsersFromServer();
-
+      next: (res) => {
+        console.log("Delete response:", res.message);
+        
+        this.isLoading = false;
+        if (res.message === 'SUCCESS') {  // Assuming backend returns similar message for delete
+          // alert('User deleted successfully');
+          this.showMessage('success', 'User deleted successfully');
+          this.goNew();
+          this.loadUsersFromServer();
+          this.swt = '1';
+        } else {
+          // alert('Failed to delete user');
+          this.showMessage('error', 'Failed to delete user');
+        }
       },
       error: () => {
-        alert('Delete failed');
-      },
-      complete: () => {
         this.isLoading = false;
+        // alert('Delete failed');
+        this.showMessage('error', 'An error occurred while deleting');
       }
     });
   }
@@ -368,5 +382,15 @@ export class UserList implements OnInit, OnDestroy {
     return end > this._pagerData.totalItems
       ? this._pagerData.totalItems
       : end;
+  }
+
+  showMessage(type: 'success' | 'error' | 'warning', text: string) {
+    this.messageType = type;
+    this.message = text;
+
+    setTimeout(() => {
+      this.message = '';
+      this.messageType = '';
+    }, 3000); // auto hide after 3s
   }
 }
