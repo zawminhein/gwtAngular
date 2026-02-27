@@ -1,1 +1,183 @@
-<p>role-setup works!</p>
+<div class="container-fluid mt-3">
+
+  <!-- 🔹 TAB SWITCH -->
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="ywa === '1'" (click)="ywa='1'; findAllRoles()">
+        Role List
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="ywa === '2'" (click)="roleTab()">
+        Role Setup
+      </button>
+    </li>
+  </ul>
+
+  <!-- ================= ROLE LIST TAB ================= -->
+    <div *ngIf="ywa === '1'" class="mt-3">
+
+    <!-- Search + Actions -->
+        <div class=" mb-2">
+            <div class="py-2 d-flex gap-2 flex-wrap align-items-center">
+                <input type="text"
+                        class="form-control form-control-sm w-25"
+                        placeholder="Search..."
+                        [(ngModel)]="searchTxt"
+                        (keyup.enter)="search()"
+                        [ngModelOptions]="{standalone:true}" />
+
+                <button class="btn btn-sm btn-primary" (click)="search()">
+                    <i class="fa fa-search"></i>
+                </button>
+
+                <button class="btn btn-sm btn-secondary" (click)="clear()">
+                    <i class="fa fa-refresh"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Table + Pagination -->
+        <div class="card">
+            <div class="card-body position-relative">
+
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let role of roles">
+                            <td (click)="read(role)" style="cursor: pointer;">
+                                <a href="javascript:void(0)" (click)="read(role)" class="clickable text-decoration-none">
+                                {{ role.t1 }}
+                                </a>
+                            </td>
+                            <td>{{ role.t2 }}</td>
+                            </tr>
+
+                            <tr *ngIf="!isLoading && roles.length === 0">
+                            <td colspan="2" class="text-center text-muted">No records found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination & Info -->
+                <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
+                    <!-- Buttons -->
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" [disabled]="_pagerData.currentPage === 1" (click)="changePage(1)">«</button>
+                        <button class="btn btn-outline-primary" [disabled]="_pagerData.currentPage === 1" (click)="changePage(_pagerData.currentPage - 1)">‹</button>
+
+                        <button class="btn btn-outline-primary" *ngFor="let p of pages" 
+                                [class.active]="_pagerData.currentPage === p" 
+                                (click)="changePage(p)">
+                            {{ p }}
+                        </button>
+
+                        <button class="btn btn-outline-primary" [disabled]="_pagerData.currentPage === pages.length" (click)="changePage(_pagerData.currentPage + 1)">›</button>
+                        <button class="btn btn-outline-primary" [disabled]="_pagerData.currentPage === pages.length" (click)="changePage(pages.length)">»</button>
+                    </div>
+
+                    <!-- Status -->
+                    <small class="text-muted">
+                    Showing <strong>{{ startItem }}</strong> – <strong>{{ endItem }}</strong> of <strong>{{ _pagerData.totalItems }}</strong> | Page <strong>{{ _pagerData.currentPage }}</strong> / <strong>{{ totalPages }}</strong>
+                    </small>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+  <!-- ================= SETUP TAB ================= -->
+  <div *ngIf="ywa === '2'" class="mt-3">
+
+    <!-- Action Buttons -->
+    <div class="card mb-2">
+      <div class="card-body d-flex gap-2">
+        <button class="btn btn-success btn-sm" (click)="new()">New</button>
+        <button class="btn btn-primary btn-sm" (click)="save()" [disabled]="isLoading">{{ _obj.syskey === '' ? 'Save' : 'Update' }}</button>
+        <button class="btn btn-danger btn-sm" (click)="deleteRole()" [disabled]="!deleteControl">Delete</button>
+      </div>
+    </div>
+
+    <!-- Code + Description -->
+    <div class="card mb-2">
+      <div class="card-body">
+        <div class="row mb-2">
+          <div class="col-md-6">
+            <label class="form-label">Code</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="_obj.t1" [disabled]="_obj.syskey !== ''">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Description</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="_obj.t2">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Roles -->
+    <div class="card">
+      <div class="card-header fw-bold">Menu Roles</div>
+      <div class="card-body p-5">
+
+        <div *ngFor="let menu of _obj.menus" class="mb-3">
+          <!-- Main Menu -->
+          <div class="d-flex align-items-center mb-1">
+            <button class="btn btn-sm btn-outline-secondary me-2" (click)="expand(menu)">
+              <i class="fa" [ngClass]="menu.isexpand ? 'fa-minus' : 'fa-plus'"></i>
+            </button>
+
+            <input type="checkbox" class="form-check-input me-2"
+                   [(ngModel)]="menu.checked"
+                   [ngModelOptions]="{standalone:true}"
+                   (change)="checkAll(menu)">
+            <span class="fw-semibold">{{ menu.menuName }}</span>
+          </div>
+
+          <!-- Child Menus -->
+          <div *ngIf="menu.isexpand" class="ms-5 px-3">
+            <div *ngFor="let child of menu.childList" class="mb-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox"
+                       [(ngModel)]="child.checked"
+                       [ngModelOptions]="{standalone:true}"
+                       (change)="checkChild(menu, child)">
+                <label class="form-check-label">{{ child.menuName }}</label>
+              </div>
+
+              <!-- Buttons -->
+              <div *ngIf="child.btns?.length > 0" class="ms-4 mt-1 d-flex flex-wrap gap-3">
+                <div *ngFor="let btn of child.btns" class="form-check">
+                  <input class="form-check-input" type="checkbox"
+                         [(ngModel)]="btn.checked"
+                         [disabled]="!child.checked"
+                         [ngModelOptions]="{standalone:true}">
+                  <label class="form-check-label">{{ btn.code }}</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading"
+       class="position-fixed top-50 start-50 translate-middle text-center bg-secondary bg-opacity-10 p-4 rounded shadow-sm text-dark">
+    <div class="spinner-border text-secondary"></div>
+    <div class="mt-2">Please wait...</div>
+  </div>
+</div>

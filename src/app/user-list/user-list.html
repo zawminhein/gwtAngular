@@ -67,7 +67,7 @@
               <button type="button"
                 class="btn btn-sm ms-2 btn-secondary"
                 (click)="clear()">
-                <i class="fa fa-times"></i>
+                <i class="fa fa-refresh"></i>
               </button>
             </div>
           </div>
@@ -130,10 +130,10 @@
           <div class="position-relative">
 
             <!-- Overlay -->
-            <div *ngIf="isLoading"
+            <!-- <div *ngIf="isLoading"
                 class="loading-overlay d-flex justify-content-center align-items-center">
               <div class="spinner-border text-primary" role="status"></div>
-            </div>
+            </div> -->
 
             <!-- Table -->
             <div class="table-responsive" [class.table-disabled]="isLoading">
@@ -256,4 +256,11 @@
 
     </fieldset>
   </form>
+  <div *ngIf="isLoading"
+       class="position-fixed top-50 start-50 
+              translate-middle text-center 
+              bg-secondary bg-opacity-10 p-4 rounded shadow-sm text-dark">
+    <div class="spinner-border text-secondary"></div>
+    <div class="mt-2">Please wait...</div>
+  </div>
 </div>
