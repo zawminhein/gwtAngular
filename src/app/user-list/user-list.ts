@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { UserService } from '../services/user.service';
+import { ToastService } from '../services/toast.service';
 
 @Component({
   selector: 'app-user-list',
@@ -19,159 +20,148 @@ import { UserService } from '../services/user.service';
 })
 export class UserList implements OnInit, OnDestroy {
 
-  // ================= SWITCH =================
-  swt: string = '1';
-
-  changeTab(tab: string): void {
-    this.swt = tab;
-  }
+  // ================= UI STATE =================
+  activeTab: 'list' | 'form' = 'list';
+  isLoading = false;
 
   // ================= DATA =================
-  userData: any[] = [];
+  users: any[] = [];
   private allUsers: any[] = [];
-  _roleData: any[] = [];
+  roles: any[] = [];
 
-  searchtxt = '';
+  searchText = '';
   selectedRole = '';
-  isLoading = false;
-  _orgId: string = '';
+  orgId = '';
 
-  private routeSub!: Subscription;
-
-  _pagerData = {
-    currentPage: 1,
-    itemsPerPage: 10,
-    totalItems: 0
+  pager = {
+    page: 1,
+    size: 10,
+    total: 0
   };
 
-  _objd: any = this.getEmptyUser();
+  userForm = this.createEmptyUser();
 
-  get isEditMode(): boolean {
-    return !!this._objd?.u5syskey;
-  }
-
-  private messageTimeout: any;
-  message: string = '';
-  messageType: 'success' | 'error' | 'warning' | '' = '';
-
+  private routeSub!: Subscription;
 
   constructor(
     private userService: UserService,
     private router: Router,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private toast: ToastService
   ) {}
 
-  // ================= INIT =================
+  // ================= LIFECYCLE =================
   ngOnInit(): void {
+    this.initProfile();
+    this.initRouteListener();
+    this.loadInitialData();
+  }
 
-    const profileData = localStorage.getItem('profile');
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+  }
 
-    if (!profileData) {
+  // ================= INITIALIZATION =================
+  private initProfile(): void {
+    const profile = localStorage.getItem('profile');
+
+    if (!profile) {
       this.router.navigate(['/login']);
       return;
     }
 
-    const profile = JSON.parse(profileData);
-    this._orgId = profile?.organizationID ?? '';
+    this.orgId = JSON.parse(profile)?.organizationID ?? '';
+  }
 
-    this.loadInitialData();
-
+  private initRouteListener(): void {
     this.routeSub = this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe(() => {
-        this.loadInitialData();
-      });
+      .subscribe(() => this.loadInitialData());
   }
 
-  ngOnDestroy(): void {
-    if (this.routeSub) this.routeSub.unsubscribe();
+  private loadInitialData(): void {
+    this.loadRoles();
+    this.loadUsers();
   }
 
-  loadInitialData(): void {
-    this.getRoleData();
-    this.loadUsersFromServer();
-  }
-
-  // ================= LOAD USERS =================
-  loadUsersFromServer(): void {
+  // ================= LOAD =================
+  private loadUsers(): void {
 
     this.isLoading = true;
 
-    this.userService.getUsers(this._orgId)
-      .subscribe({
-        next: (data: any) => {
-          this.allUsers = data?.userlist ?? [];
-          this._pagerData.totalItems = this.allUsers.length;
-          this.applyFilterAndPagination();
-        },
-        error: () => {
-          this.showMessage('error', 'Failed to load users');
-        },
-        complete: () => {
-          this.isLoading = false;
-          this.cd.detectChanges();
-        }
-      });
+    this.userService.getUsers(this.orgId).subscribe({
+      next: (res: any) => {
+        this.allUsers = res?.userlist ?? [];
+        this.applyFilter();
+      },
+      error: () => this.toast.show('Failed to load users', 'error'),
+      complete: () => {
+        this.isLoading = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  private loadRoles(): void {
+    this.userService.getRoles(this.orgId).subscribe({
+      next: data => this.roles = data ?? [],
+      error: () => this.toast.show('Failed to load roles', 'error')
+    });
   }
 
   // ================= FILTER + PAGINATION =================
-  applyFilterAndPagination(): void {
+  applyFilter(): void {
 
-    let filtered = [...this.allUsers];
+    let data = [...this.allUsers];
 
-    if (this.searchtxt.trim()) {
-      const txt = this.searchtxt.toLowerCase();
-      filtered = filtered.filter(u =>
+    if (this.searchText.trim()) {
+      const txt = this.searchText.toLowerCase();
+      data = data.filter(u =>
         u.username?.toLowerCase().includes(txt)
       );
     }
 
     if (this.selectedRole) {
-      filtered = filtered.filter(u =>
-        u.rolelist?.some((r: any) =>
-          r.rolesys === this.selectedRole
-        )
+      data = data.filter(u =>
+        u.rolelist?.some((r: any) => r.rolesys === this.selectedRole)
       );
     }
 
-    this._pagerData.totalItems = filtered.length;
+    this.pager.total = data.length;
 
-    const start =
-      (this._pagerData.currentPage - 1) *
-      this._pagerData.itemsPerPage;
+    const start = (this.pager.page - 1) * this.pager.size;
+    const end = start + this.pager.size;
 
-    const end = start + this._pagerData.itemsPerPage;
-
-    this.userData = filtered.slice(start, end);
-  }
-
-  // ================= EVENTS =================
-  search(): void {
-    this._pagerData.currentPage = 1;
-    this.applyFilterAndPagination();
+    this.users = data.slice(start, end);
   }
 
   changePage(page: number): void {
-    this._pagerData.currentPage = page;
-    this.applyFilterAndPagination();
+    this.pager.page = page;
+    this.applyFilter();
   }
 
-  clear(): void {
-    this.searchtxt = '';
+  clearFilters(): void {
+    this.searchText = '';
     this.selectedRole = '';
-    this._pagerData.currentPage = 1;
-    this.applyFilterAndPagination();
+    this.pager.page = 1;
+    this.applyFilter();
   }
 
-  refresh(): void {
-    this.loadUsersFromServer();
+  // ================= FORM =================
+  get isEditMode(): boolean {
+    return !!this.userForm?.u5syskey;
   }
 
-  // ================= DETAIL =================
-  goDetail(user: any): void {
+  openNew(): void {
+    this.userForm = this.createEmptyUser();
+    this.resetRoleChecks();
+    this.activeTab = 'form';
+  }
 
-    this._objd = {
-      u5syskey: user.u5sys ?? user.u5syskey ?? '',
+  openEdit(user: any): void {
+
+    this.userForm = {
+      u5syskey: user.u5sys ?? '',
       id: user.userid,
       name: user.username,
       password: user.password,
@@ -180,183 +170,136 @@ export class UserList implements OnInit, OnDestroy {
       u12syskey: user.u12sys ?? ''
     };
 
-    this._roleData.forEach(r => r.checkstatus = false);
+    this.resetRoleChecks();
 
-    if (user.rolelist?.length) {
-      user.rolelist.forEach((ur: any) => {
-        const role = this._roleData.find(r => r.syskey === ur.rolesys);
-        if (role) role.checkstatus = true;
-      });
-    }
+    user.rolelist?.forEach((ur: any) => {
+      const role = this.roles.find(r => r.syskey === ur.rolesys);
+      if (role) role.checkstatus = true;
+    });
 
-    this.swt = '2';
+    this.activeTab = 'form';
   }
 
-  goNew(): void {
-    this._objd = this.getEmptyUser();
-    this._roleData.forEach(r => r.checkstatus = false);
-    this.swt = '2';
+  private resetRoleChecks(): void {
+    this.roles.forEach(r => r.checkstatus = false);
   }
 
   // ================= SAVE =================
-  goSave(): void {
+  save(): void {
 
-    this.prepareSaveData();
+    this.prepareRoleData();
 
-    if (!this._objd.id || !this._objd.name) {
-      this.showMessage('warning', 'User ID and Name required');
-      return;
-    }
-
-    if (this._objd.password !== this._objd.confirmPassword) {
-      this.showMessage('error', 'Password mismatch');
-      return;
-    }
-
-    if (this._objd.roleData.length === 0) {
-      this.showMessage('warning', 'Select at least one role');
-      return;
-    }
+    if (!this.validateForm()) return;
 
     this.isLoading = true;
 
-    this.userService.saveUser(this._objd, this._orgId)
+    this.userService.saveUser(this.userForm, this.orgId)
       .subscribe({
-        next: (res) => {
-
-          this.isLoading = false;
-
-          if (res?.message === 'Success' || res?.message === 'Update Success') {
-            this.showMessage('success', 'User saved successfully');
-            this.goNew();
-            this.loadUsersFromServer();
-            this.swt = '1';
-          }
-          else if (res?.message === 'UserExist') {
-            this.showMessage('warning', 'User already exists');
-          }
-          else {
-            this.showMessage('error', 'Failed to save user');
-          }
-        },
-        error: () => {
-          this.isLoading = false;
-          this.showMessage('error', 'Error while saving');
-        }
+        next: (res) => this.handleSaveResponse(res),
+        error: () => this.handleError('Error while saving')
       });
   }
 
-  prepareSaveData(): void {
-    this._objd.roleData = this._roleData
-      .filter(r => r.checkstatus)
-      .map(r => ({
-        syskey: r.syskey
-      }));
+  private validateForm(): boolean {
+
+    if (!this.userForm.id || !this.userForm.name) {
+      this.toast.show('User ID and Name required', 'error');
+      return false;
+    }
+
+    if (this.userForm.password !== this.userForm.confirmPassword) {
+      this.toast.show('Password mismatch', 'error');
+      return false;
+    }
+
+    if (!this.userForm.roleData.length) {
+      this.toast.show('Select at least one role', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  private handleSaveResponse(res: any): void {
+
+    this.isLoading = false;
+
+    if (res?.message === 'Success' || res?.message === 'Update Success') {
+      const msg = res.message === 'Success'
+        ? 'User saved successfully'
+        : 'User updated successfully';
+
+      this.toast.show(msg, 'success');
+      this.afterMutation();
+    }
+    else if (res?.message === 'UserExist') {
+      this.toast.show('User already exists', 'error');
+    }
+    else {
+      this.toast.show('Failed to save user', 'error');
+    }
   }
 
   // ================= DELETE =================
-  goDelete(): void {
+  delete(): void {
 
-    if (!this._objd.u5syskey) {
-      this.showMessage('warning', 'No record to delete');
+    if (!this.userForm.u5syskey) {
+      this.toast.show('No record to delete', 'error');
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
+    if (!confirm('Are you sure?')) return;
 
     this.isLoading = true;
 
-    this.userService.deleteUser(this._objd.u5syskey, this._orgId)
+    this.userService.deleteUser(this.userForm.u5syskey, this.orgId)
       .subscribe({
         next: (res) => {
-
           this.isLoading = false;
 
           if (res?.message === 'SUCCESS') {
-            this.showMessage('success', 'User deleted successfully');
-            this.goNew();
-            this.loadUsersFromServer();
-            this.swt = '1';
+            this.toast.show('User deleted', 'success');
+            this.afterMutation();
           } else {
-            this.showMessage('error', 'Failed to delete user');
+            this.toast.show('Delete failed', 'error');
           }
         },
-        error: () => {
-          this.isLoading = false;
-          this.showMessage('error', 'Delete failed');
-        }
+        error: () => this.handleError('Delete failed')
       });
   }
 
-  // ================= ROLE =================
-  getRoleData(): void {
-
-    this.userService.getRoles(this._orgId)
-      .subscribe({
-        next: (data) => {
-          this._roleData = data ?? [];
-        },
-        error: () => {
-          this.showMessage('error', 'Failed to load roles');
-        }
-      });
+  // ================= HELPERS =================
+  private afterMutation(): void {
+    this.openNew();
+    this.loadUsers();
+    this.activeTab = 'list';
   }
 
-  // ================= PAGINATION GETTERS =================
-  get totalPages(): number {
-    return Math.ceil(
-      this._pagerData.totalItems /
-      this._pagerData.itemsPerPage
-    ) || 1;
+  private handleError(msg: string): void {
+    this.isLoading = false;
+    this.toast.show(msg, 'error');
   }
 
-  get startItem(): number {
-    if (this._pagerData.totalItems === 0) return 0;
-
-    return (
-      (this._pagerData.currentPage - 1) *
-      this._pagerData.itemsPerPage + 1
-    );
+  private prepareRoleData(): void {
+    this.userForm.roleData = this.roles
+      .filter(r => r.checkstatus)
+      .map(r => ({ syskey: r.syskey }));
   }
 
-  get endItem(): number {
-    const end =
-      this._pagerData.currentPage *
-      this._pagerData.itemsPerPage;
-
-    return end > this._pagerData.totalItems
-      ? this._pagerData.totalItems
-      : end;
-  }
-
-  // ================= UTIL =================
-  private getEmptyUser() {
+  private createEmptyUser() {
     return {
       u5syskey: '',
       id: '',
       name: '',
       password: '',
       confirmPassword: '',
-      roleData: [],
+      roleData: [] as any,
       u12syskey: ''
     };
   }
 
-  showMessage(type: 'success' | 'error' | 'warning', text: string) {
-
-    if (this.messageTimeout) {
-      clearTimeout(this.messageTimeout);
-    }
-
-    this.messageType = type;
-    this.message = text;
-
-    this.messageTimeout = setTimeout(() => {
-      this.message = '';
-      this.messageType = '';
-      this.cd.detectChanges();
-    }, 3000);
+  // ================= PAGINATION =================
+  get totalPages(): number {
+    return Math.ceil(this.pager.total / this.pager.size) || 1;
   }
 }

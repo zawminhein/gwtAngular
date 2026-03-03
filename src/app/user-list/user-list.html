@@ -1,125 +1,116 @@
 <div class="container-fluid">
 
-  <div *ngIf="message"
-      class="alert mt-2"
-      [ngClass]="{
-        'alert-success': messageType === 'success',
-        'alert-danger': messageType === 'error',
-        'alert-warning': messageType === 'warning'
-      }">
-
-    {{ message }}
-
-    <button type="button" class="btn-close float-end"
-            (click)="message=''">
-    </button>
-  </div>
-
   <form autocomplete="off">
     <fieldset>
 
-      <!-- SWITCH -->
       <!-- ================= SWITCH TABS ================= -->
       <div class="switch-wrapper mb-3 mt-2">
         <div class="switch-container">
-          <!-- Sliding background -->
+
           <div 
             class="switch-slider"
-            [class.slide-right]="swt === '2'">
+            [class.slide-right]="activeTab === 'form'">
           </div>
 
-          <!-- Buttons -->
           <div 
             class="switch-option"
-            [class.active]="swt === '1'"
-            (click)="changeTab('1')">
+            [class.active]="activeTab === 'list'"
+            (click)="activeTab = 'list'">
             List
           </div>
 
           <div 
             class="switch-option"
-            [class.active]="swt === '2'"
-            (click)="changeTab('2')">
+            [class.active]="activeTab === 'form'"
+            (click)="activeTab = 'form'">
             User
           </div>
+
         </div>
       </div>
 
-      <!-- LIST VIEW -->
-      <div class="card" *ngIf="swt === '1'">
+      <!-- ================= LIST VIEW ================= -->
+      <div class="card" *ngIf="activeTab === 'list'">
         <div class="card-body">
 
+          <!-- Search -->
           <div class="row mb-2">
             <div class="col-sm-4 d-flex">
+
               <input type="text"
-                [(ngModel)]="searchtxt"
-                (keyup.enter)="search()"
+                [(ngModel)]="searchText"
+                (keyup.enter)="applyFilter()"
                 class="form-control form-control-sm"
                 placeholder="Search..."
                 [ngModelOptions]="{standalone: true}" />
 
               <button type="button"
                 class="btn btn-sm ms-2 btn-primary"
-                (click)="search()">
+                (click)="applyFilter()">
                 <i class="fa fa-search"></i>
               </button>
 
               <button type="button"
                 class="btn btn-sm ms-2 btn-secondary"
-                (click)="clear()">
+                (click)="clearFilters()">
                 <i class="fa fa-refresh"></i>
               </button>
+
             </div>
           </div>
 
           <!-- ================= PAGINATION ================= -->
           <div class="d-flex align-items-center mt-3 flex-wrap gap-2">
 
-            <!-- LEFT: Buttons -->
             <div class="d-flex gap-2">
 
               <button
                 class="btn btn-sm btn-outline-primary"
-                [disabled]="_pagerData.currentPage === 1"
+                [disabled]="pager.page === 1"
                 (click)="changePage(1)">
                 «
               </button>
 
               <button
                 class="btn btn-sm btn-outline-primary"
-                [disabled]="_pagerData.currentPage === 1"
-                (click)="changePage(_pagerData.currentPage - 1)">
+                [disabled]="pager.page === 1"
+                (click)="changePage(pager.page - 1)">
                 ‹
               </button>
 
               <button
                 class="btn btn-sm btn-outline-primary"
-                [disabled]="(_pagerData.currentPage * _pagerData.itemsPerPage) >= _pagerData.totalItems"
-                (click)="changePage(_pagerData.currentPage + 1)">
+                [disabled]="(pager.page * pager.size) >= pager.total"
+                (click)="changePage(pager.page + 1)">
                 ›
               </button>
 
               <button
                 class="btn btn-sm btn-outline-primary"
-                [disabled]="(_pagerData.currentPage * _pagerData.itemsPerPage) >= _pagerData.totalItems"
+                [disabled]="(pager.page * pager.size) >= pager.total"
                 (click)="changePage(totalPages)">
                 »
               </button>
 
             </div>
 
-            <!-- RIGHT: Status -->
             <div>
               <small class="text-muted">
                 Showing
-                <strong>{{ startItem }}</strong>
+                <strong>{{ (pager.page - 1) * pager.size + 1 }}</strong>
                 –
-                <strong>{{ endItem }}</strong>
+                <strong>
+                  {{
+                    (pager.page * pager.size) > pager.total
+                      ? pager.total
+                      : (pager.page * pager.size)
+                  }}
+                </strong>
                 of
-                <strong>{{ _pagerData.totalItems }}</strong>
+                <strong>{{ pager.total }}</strong>
                 |
                 Page
-                <strong>{{ _pagerData.currentPage }}</strong>
+                <strong>{{ pager.page }}</strong>
                 /
                 <strong>{{ totalPages }}</strong>
               </small>
@@ -127,16 +118,10 @@
 
           </div>
 
-          <div class="position-relative">
+          <!-- Table -->
+          <div class="position-relative mt-3">
 
-            <!-- Overlay -->
-            <!-- <div *ngIf="isLoading"
-                class="loading-overlay d-flex justify-content-center align-items-center">
-              <div class="spinner-border text-primary" role="status"></div>
-            </div> -->
-
-            <!-- Table -->
-            <div class="table-responsive" [class.table-disabled]="isLoading">
+            <div class="table-responsive">
               <table class="table table-sm table-hover table-striped mb-0">
                 <thead>
                   <tr>
@@ -146,62 +131,77 @@
                 </thead>
 
                 <tbody>
-                  <tr *ngFor="let j of userData">
-                    <td (click)="goDetail(j)" class="clickable">
+                  <tr *ngFor="let j of users">
+                    <td (click)="openEdit(j)"
+                        style="cursor: pointer;">
                       {{ j.userid }}
                     </td>
                     <td>{{ j.username }}</td>
                   </tr>
 
-                  <tr *ngIf="!isLoading && userData.length === 0">
-                    <td colspan="2" class="text-center text-muted">
+                  <tr *ngIf="!isLoading && users.length === 0">
+                    <td colspan="2"
+                        class="text-center text-muted">
                       No users found
                     </td>
                   </tr>
                 </tbody>
+
               </table>
             </div>
 
           </div>
+
         </div>
       </div>
 
-      <!-- USER FORM -->
-      <div class="card mb-2" *ngIf="swt === '2'">
+      <!-- ================= USER FORM ================= -->
+      <div class="card mb-2" *ngIf="activeTab === 'form'">
         <div class="card-body">
 
+          <!-- Action Buttons -->
           <div class="mb-3">
-            <button type="button" class="btn btn-sm btn-primary" (click)="goNew()">New</button>
+
+            <button type="button"
+                    class="btn btn-sm btn-primary"
+                    (click)="openNew()">
+              New
+            </button>
             
             <button
               class="btn btn-sm ms-2 btn-primary"
-              (click)="goSave()"
+              (click)="save()"
               [disabled]="isLoading">
               {{ isEditMode ? 'Update' : 'Save' }}
             </button>
             
-            <button type="button" class="btn btn-sm btn-danger ms-2" 
-              (click)="goDelete()" 
-              [disabled]="!_objd.u5syskey || isLoading">
+            <button type="button"
+                    class="btn btn-sm btn-danger ms-2"
+                    (click)="delete()"
+                    [disabled]="!userForm.u5syskey || isLoading">
               Delete
             </button>
+
           </div>
 
           <div class="row">
+
+            <!-- User Fields -->
             <div class="col-sm-4">
 
               <div class="mb-2">
                 <label>ID</label>
                 <input type="text"
-                  [(ngModel)]="_objd.id"
+                  [(ngModel)]="userForm.id"
                   [ngModelOptions]="{standalone: true}"
+                  [disabled]="isEditMode"
                   class="form-control form-control-sm" />
               </div>
 
               <div class="mb-2">
                 <label>Name</label>
                 <input type="text"
-                  [(ngModel)]="_objd.name"
+                  [(ngModel)]="userForm.name"
                   [ngModelOptions]="{standalone: true}"
                   class="form-control form-control-sm" />
               </div>
@@ -209,7 +209,7 @@
               <div class="mb-2">
                 <label>Password</label>
                 <input type="password"
-                  [(ngModel)]="_objd.password"
+                  [(ngModel)]="userForm.password"
                   [ngModelOptions]="{standalone: true}"
                   class="form-control form-control-sm" />
               </div>
@@ -217,14 +217,16 @@
               <div class="mb-2">
                 <label>Confirm Password</label>
                 <input type="password"
-                  [(ngModel)]="_objd.confirmPassword"
+                  [(ngModel)]="userForm.confirmPassword"
                   [ngModelOptions]="{standalone: true}"
                   class="form-control form-control-sm" />
               </div>
 
             </div>
 
+            <!-- Roles Table -->
             <div class="col-sm-5">
+
               <div class="table-responsive">
                 <table class="table table-sm table-hover">
                   <thead>
@@ -234,19 +236,22 @@
                       <th>Description</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    <tr *ngFor="let obj of _roleData">
+                    <tr *ngFor="let obj of roles">
                       <td>
                         <input type="checkbox"
                           [(ngModel)]="obj.checkstatus"
-                          [ngModelOptions]="{standalone: true}" autofocus/>
+                          [ngModelOptions]="{standalone: true}" />
                       </td>
                       <td>{{ obj.t1 }}</td>
                       <td>{{ obj.t2 }}</td>
                     </tr>
                   </tbody>
+
                 </table>
               </div>
+
             </div>
 
           </div>
@@ -256,11 +261,31 @@
 
     </fieldset>
   </form>
+
+  <!-- ================= GLOBAL LOADING ================= -->
   <div *ngIf="isLoading"
-       class="position-fixed top-50 start-50 
-              translate-middle text-center 
-              bg-secondary bg-opacity-10 p-4 rounded shadow-sm text-dark">
+       class="position-fixed top-50 start-50 translate-middle
+              text-center bg-secondary bg-opacity-10
+              p-4 rounded shadow-sm text-dark">
+
     <div class="spinner-border text-secondary"></div>
     <div class="mt-2">Please wait...</div>
+
+  </div>
+
+</div>
+
+<!-- ================= TOAST CONTAINER ================= -->
+<div class="position-fixed top-0 start-50 translate-middle-x p-3 mt-5"
+     style="z-index: 1100;">
+  <div id="liveToast"
+       class="toast align-items-center border-0 fade">
+    <div class="d-flex">
+      <div class="toast-body text-white"
+           id="toastMessage"></div>
+      <button type="button"
+              class="btn-close btn-close-white me-2 m-auto">
+      </button>
+    </div>
   </div>
 </div>

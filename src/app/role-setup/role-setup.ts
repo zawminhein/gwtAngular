@@ -3,6 +3,9 @@ import { Router } from '@angular/router';
 import { RoleService } from '../services/role.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+// import * as bootstrap from 'bootstrap';
+// import * as Popper from '@popperjs/core';
 
 declare var $: any;
 
@@ -36,7 +39,8 @@ export class RoleSetup implements OnInit {
   constructor(
     public router: Router,
     private roleService: RoleService,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit(): void {
@@ -162,33 +166,68 @@ export class RoleSetup implements OnInit {
     const accessList = this.prepareData();
     if (!this.isValid()) return;
 
-    // Placeholder user info
     this._obj.userSyskey = 'USER_SYSKEY_PLACEHOLDER';
     this._obj.userid = 'USER_ID_PLACEHOLDER';
     this._obj.username = 'USERNAME_PLACEHOLDER';
+
+    const isNew = !this._obj.syskey; // Determine if it's a new role based on syskey
 
     this.roleService.saveRole(this._obj, accessList, orgId).subscribe({
       next: (data: any) => {
         if (data.message === 'SUCCESS') {
           this._obj.syskey = data.syskey;
           this.findAllMenus(true, this._obj.syskey);
-          alert('Saved successfully!');
+          this.ywa = '1';
+          this.findAllRoles();
+          // const isNew = this._obj.syskey === data.syskey && !this._obj.syskey;
+          const message = isNew ? 'Role created successfully!' : 'Role updated successfully!';
+          this.showMessage(message, 'success');
         } else if (data.message === 'FAIL') {
-          alert('Save failed!');
+          this.showMessage('Save failed!', 'error');
         } else if (data.message === 'codeExist') {
-          alert('Code already exists!');
+          this.showMessage('Code already exists!', 'error');
         }
       },
-      error: () => alert('Something went wrong!')
+      error: () => this.showMessage('Something went wrong!', 'error')
     });
   }
 
   isValid(): boolean {
     if (this._obj.t1.trim().length === 0) {
-      alert('Code cannot be empty!');
+      this.showMessage('Code cannot be empty!');
       return false;
     }
     return true;
+  }
+
+  // Generic SnackBar message function
+  // showMessage(message: string) {
+  //   this.snackBar.open(message, 'Close', {
+  //     duration: 3000,       // auto-close after 3 seconds
+  //     horizontalPosition: 'right',
+  //     verticalPosition: 'top',
+  //   });
+  // }
+  showMessage(msg: string, type: 'success' | 'error' | 'info' = 'info') {
+    const toastEl = document.getElementById('liveToast') as HTMLElement;
+    const messageEl = document.getElementById('toastMessage') as HTMLElement;
+
+    // Set message
+    messageEl.innerText = msg;
+
+    // Change background based on type
+    toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary');
+    if(type === 'success') toastEl.classList.add('text-bg-success');
+    else if(type === 'error') toastEl.classList.add('text-bg-danger');
+    else toastEl.classList.add('text-bg-primary');
+
+    // Show toast by adding 'show' class
+    toastEl.classList.add('show');
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      toastEl.classList.remove('show');
+    }, 3000);
   }
 
   // ---------- READ ROLE ----------
@@ -278,15 +317,6 @@ export class RoleSetup implements OnInit {
 
   // ---------- DELETE ----------
   deleteRole() {
-    $('#confirm_delete_popup_size').attr('class', 'modal-dialog modal-sm');
-    $('#confirm_delete_popup').modal('show');
-  }
-
-  closepopup() { $('#confirm_delete_popup').modal('hide'); }
-
-  clickConfirm() { this.delete(); $('#confirm_delete_popup').modal('hide'); }
-
-  delete() {
     const orgId = localStorage.getItem('organizationID') || '';
     const id = this._obj.syskey;
     if (!id) return;
@@ -296,14 +326,18 @@ export class RoleSetup implements OnInit {
       next: (data: any) => {
         this.isLoading = false;
         if (data.message === 'SUCCESS') {
-          alert('Deleted Successfully!');
+          this.showMessage('Deleted successfully!', 'success');
           this.clear();
           this.ywa = '1';
+          this.findAllRoles();
         } else {
-          alert('Deleting Failed!');
+          this.showMessage('Deleting failed!', 'error');
         }
       },
-      error: () => this.isLoading = false
+      error: () => {
+        this.isLoading = false;
+        this.showMessage('Something went wrong!', 'error');
+      }
     });
   }
 
