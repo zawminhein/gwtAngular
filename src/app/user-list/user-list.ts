@@ -248,7 +248,16 @@ export class UserList implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Are you sure?')) return;
+    const modal = new (window as any).bootstrap.Modal(
+      document.getElementById('confirmUserDeleteModal')
+    );
+
+    modal.show();
+  }
+
+  confirmDelete(): void {
+
+    if (!this.userForm.u5syskey) return;
 
     this.isLoading = true;
 
@@ -257,14 +266,22 @@ export class UserList implements OnInit, OnDestroy {
         next: (res) => {
           this.isLoading = false;
 
+          // Hide modal
+          const modalEl = document.getElementById('confirmUserDeleteModal');
+          const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+          modal?.hide();
+
           if (res?.message === 'SUCCESS') {
-            this.toast.show('User deleted', 'success');
+            this.toast.show('User deleted successfully!', 'success');
             this.afterMutation();
           } else {
-            this.toast.show('Delete failed', 'error');
+            this.toast.show('Delete failed!', 'error');
           }
         },
-        error: () => this.handleError('Delete failed')
+        error: () => {
+          this.isLoading = false;
+          this.toast.show('Delete failed!', 'error');
+        }
       });
   }
 

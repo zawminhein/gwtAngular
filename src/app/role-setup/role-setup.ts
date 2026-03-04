@@ -4,6 +4,7 @@ import { RoleService } from '../services/role.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ToastService } from '../services/toast.service';
 // import * as bootstrap from 'bootstrap';
 // import * as Popper from '@popperjs/core';
 
@@ -40,7 +41,7 @@ export class RoleSetup implements OnInit {
     public router: Router,
     private roleService: RoleService,
     private cd: ChangeDetectorRef,
-    private snackBar: MatSnackBar
+    private toast: ToastService
   ) { }
 
   ngOnInit(): void {
@@ -181,20 +182,20 @@ export class RoleSetup implements OnInit {
           this.findAllRoles();
           // const isNew = this._obj.syskey === data.syskey && !this._obj.syskey;
           const message = isNew ? 'Role created successfully!' : 'Role updated successfully!';
-          this.showMessage(message, 'success');
+          this.toast.show(message, 'success');
         } else if (data.message === 'FAIL') {
-          this.showMessage('Save failed!', 'error');
+          this.toast.show('Save failed!', 'error');
         } else if (data.message === 'codeExist') {
-          this.showMessage('Code already exists!', 'error');
+          this.toast.show('Code already exists!', 'error');
         }
       },
-      error: () => this.showMessage('Something went wrong!', 'error')
+      error: () => this.toast.show('Something went wrong!', 'error')
     });
   }
 
   isValid(): boolean {
     if (this._obj.t1.trim().length === 0) {
-      this.showMessage('Code cannot be empty!');
+      this.toast.show('Code cannot be empty!');
       return false;
     }
     return true;
@@ -208,27 +209,27 @@ export class RoleSetup implements OnInit {
   //     verticalPosition: 'top',
   //   });
   // }
-  showMessage(msg: string, type: 'success' | 'error' | 'info' = 'info') {
-    const toastEl = document.getElementById('liveToast') as HTMLElement;
-    const messageEl = document.getElementById('toastMessage') as HTMLElement;
+  // showMessage(msg: string, type: 'success' | 'error' | 'info' = 'info') {
+  //   const toastEl = document.getElementById('liveToast') as HTMLElement;
+  //   const messageEl = document.getElementById('toastMessage') as HTMLElement;
 
-    // Set message
-    messageEl.innerText = msg;
+  //   // Set message
+  //   messageEl.innerText = msg;
 
-    // Change background based on type
-    toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary');
-    if(type === 'success') toastEl.classList.add('text-bg-success');
-    else if(type === 'error') toastEl.classList.add('text-bg-danger');
-    else toastEl.classList.add('text-bg-primary');
+  //   // Change background based on type
+  //   toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary');
+  //   if(type === 'success') toastEl.classList.add('text-bg-success');
+  //   else if(type === 'error') toastEl.classList.add('text-bg-danger');
+  //   else toastEl.classList.add('text-bg-primary');
 
-    // Show toast by adding 'show' class
-    toastEl.classList.add('show');
+  //   // Show toast by adding 'show' class
+  //   toastEl.classList.add('show');
 
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, 3000);
-  }
+  //   // Auto-hide after 3 seconds
+  //   setTimeout(() => {
+  //     toastEl.classList.remove('show');
+  //   }, 3000);
+  // }
 
   // ---------- READ ROLE ----------
   read(roleData: any) {
@@ -316,27 +317,72 @@ export class RoleSetup implements OnInit {
   }
 
   // ---------- DELETE ----------
+  // deleteRole() {
+  //   const orgId = localStorage.getItem('organizationID') || '';
+  //   const id = this._obj.syskey;
+  //   if (!id) return;
+
+  //   if (!confirm('Are you sure?')) return;
+
+  //   this.isLoading = true;
+  //   this.roleService.deleteRole(id, orgId).subscribe({
+  //     next: (data: any) => {
+  //       this.isLoading = false;
+  //       if (data.message === 'SUCCESS') {
+  //         this.toast.show('Deleted successfully!', 'success');
+  //         this.clear();
+  //         this.ywa = '1';
+  //         this.findAllRoles();
+  //       } else {
+  //         this.toast.show('Deleting failed!', 'error');
+  //       }
+  //     },
+  //     error: () => {
+  //       this.isLoading = false;
+  //       this.toast.show('Something went wrong!', 'error');
+  //     }
+  //   });
+  // }
+
   deleteRole() {
+    const id = this._obj.syskey;
+    if (!id) return;
+
+    const modal = new (window as any).bootstrap.Modal(
+      document.getElementById('confirmModal')
+    );
+
+    modal.show();
+  }
+
+  confirmDelete() {
     const orgId = localStorage.getItem('organizationID') || '';
     const id = this._obj.syskey;
     if (!id) return;
 
     this.isLoading = true;
+
     this.roleService.deleteRole(id, orgId).subscribe({
       next: (data: any) => {
         this.isLoading = false;
+
+        // hide modal
+        const modalEl = document.getElementById('confirmModal');
+        const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+        modal?.hide();
+
         if (data.message === 'SUCCESS') {
-          this.showMessage('Deleted successfully!', 'success');
+          this.toast.show('Deleted successfully!', 'success');
           this.clear();
           this.ywa = '1';
           this.findAllRoles();
         } else {
-          this.showMessage('Deleting failed!', 'error');
+          this.toast.show('Deleting failed!', 'error');
         }
       },
       error: () => {
         this.isLoading = false;
-        this.showMessage('Something went wrong!', 'error');
+        this.toast.show('Something went wrong!', 'error');
       }
     });
   }
