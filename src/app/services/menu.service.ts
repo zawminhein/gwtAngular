@@ -50,9 +50,10 @@ export class MenuService {
   /* ---------------- get menu by syskey ---------------- */
 
   getMenuBySyskey(syskey: string, orgId: string): Observable<any> {
-
-    return this.http.get(
-      `${this.baseUrl}/findMenuBySyskey/${syskey}`,
+    const body = {syskey: syskey}
+    return this.http.post(
+      `${this.baseUrl}/bindMenuData`, 
+      body,
       { headers: this.getHeaders(orgId) }
     );
 

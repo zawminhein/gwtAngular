@@ -1,94 +1,196 @@
-<div class="container-fluid mt-3">
+<div class="container-fluid">
 
-  <!-- Page Header -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0">Menu Setup</h5>
-    <button class="btn btn-primary btn-sm" (click)="router.navigate(['/menu-info'])">
-      + New Menu
-    </button>
-  </div>
+  <!-- Top Switch -->
+  <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
 
-  <!-- Search Panel -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="row g-2 align-items-center">
-        <div class="col-md-4">
-          <input type="text"
-                 class="form-control form-control-sm"
-                 placeholder="Search menu code or description"
-                 [(ngModel)]="searchtxt"
-                 (keyup.enter)="search()">
-        </div>
-        <div class="col-md-auto">
-          <button class="btn btn-primary btn-sm" (click)="search()">
-            <i class="fa fa-search"></i>
-          </button>
-        </div>
-        <div class="col-md-auto">
-          <button class="btn btn-secondary btn-sm" (click)="clear()">
-            <i class="fa fa-refresh"></i>
-          </button>
-        </div>
-      </div>
+    <div class="btn-group btn-group-sm">
+
+      <button class="btn" [ngClass]="swt=='1' ? 'btn-primary' : 'btn-outline-primary'" (click)="swt='1'">
+        List
+      </button>
+
+      <button class="btn" [ngClass]="swt=='2' ? 'btn-primary' : 'btn-outline-primary'" (click)="new()">
+        Information
+      </button>
+
     </div>
+
   </div>
 
-  <!-- Menu Table -->
-  <div class="card">
+
+  <!-- ================= LIST PAGE ================= -->
+
+  <div *ngIf="swt=='1'">
+
+    <!-- Search bar -->
+    <div class="d-flex mb-2">
+
+      <input type="text" class="form-control form-control-sm w-25 me-2" placeholder="Search..." [(ngModel)]="searchtxt">
+
+      <button class="btn btn-sm btn-primary me-2" (click)="search()">
+        Search
+      </button>
+
+      <button class="btn btn-sm btn-secondary" (click)="clear()">
+        Clear
+      </button>
+
+    </div>
+
+
+    <!-- Menu table -->
     <div class="table-responsive">
-      <table class="table table-sm table-hover table-striped mb-0">
-        <thead class="table-light">
+
+      <table class="table table-sm table-hover table-striped">
+
+        <thead>
           <tr>
-            <th>Code</th>
+            <th style="width:120px">Code</th>
             <th>Description</th>
-            <th>Link</th>
-            <th>Parent Menu</th>
-            <th>SubParent Menu</th>
+            <th style="width:200px">Parent</th>
+            <th style="width:200px">Sub Parent</th>
           </tr>
         </thead>
+
         <tbody>
-          <tr *ngFor="let data of menuList">
-            <td><a href="javascript:void(0)" (click)="openMenu(data)" class="text-primary text-decoration-none">{{data.code}}</a></td>
-            <td>{{data.desc}}</td>
-            <td>{{data.rout}}</td>
-            <td>{{data.pDesc}}</td>
-            <td>{{data.subPDesc}}</td>
+
+          <tr *ngFor="let m of menuList" (click)="openMenu(m)" style="cursor:pointer">
+
+            <td>{{m.code}}</td>
+            <td>{{m.desc}}</td>
+            <td>{{m.pDesc}}</td>
+            <td>{{m.subPDesc}}</td>
+
           </tr>
-          <tr *ngIf="menuList.length === 0">
-            <td colspan="5" class="text-center text-muted py-3">No menu records found</td>
-          </tr>
+
         </tbody>
+
       </table>
+
     </div>
+
 
     <!-- Pagination -->
     <div class="card-footer d-flex justify-content-between align-items-center">
-      <div class="btn-group btn-group-sm">
-        <button class="btn btn-outline-secondary" (click)="startPage()" [disabled]="pager.currentPage === 1">
-          Start
-        </button>
-        <button class="btn btn-outline-secondary" (click)="prevPage()" [disabled]="pager.currentPage === 1">
-          Previous
-        </button>
-        <button class="btn btn-outline-secondary disabled">
-          Page {{ pager.currentPage }} of {{ totalPages }}
-        </button>
-        <button class="btn btn-outline-secondary" (click)="nextPage()" [disabled]="pager.currentPage >= totalPages">
-          Next
-        </button>
-        <button class="btn btn-outline-secondary" (click)="lastPage()" [disabled]="pager.currentPage >= totalPages">
-          Last
-        </button>
-      </div>
+
       <div>
         Showing {{ startItem }} – {{ endItem }} of {{ pager.totalItems }}
       </div>
+
+      <div class="btn-group btn-group-sm">
+
+        <button class="btn btn-outline-secondary" (click)="startPage()" [disabled]="pager.currentPage===1">
+          Start
+        </button>
+
+        <button class="btn btn-outline-secondary" (click)="prevPage()" [disabled]="pager.currentPage===1">
+          Previous
+        </button>
+
+        <button class="btn btn-outline-secondary disabled">
+          Page {{pager.currentPage}} of {{totalPages}}
+        </button>
+
+        <button class="btn btn-outline-secondary" (click)="nextPage()" [disabled]="pager.currentPage>=totalPages">
+          Next
+        </button>
+
+        <button class="btn btn-outline-secondary" (click)="lastPage()" [disabled]="pager.currentPage>=totalPages">
+          End
+        </button>
+
+      </div>
+
     </div>
+
   </div>
 
-  <!-- Loading Overlay -->
-  <div *ngIf="isLoading" class="position-fixed top-50 start-50 translate-middle text-center bg-secondary bg-opacity-10 p-4 rounded shadow-sm text-dark">
-    <div class="spinner-border text-secondary"></div>
-    <div class="mt-2">Please wait...</div>
+
+
+  <!-- ================= INFORMATION PAGE ================= -->
+
+  <div *ngIf="swt=='2'">
+
+    <div class="card">
+
+      <div class="card-header">
+        Menu Information
+      </div>
+
+      <div class="card-body">
+
+        <div class="row">
+
+          <div class="col-md-4 mb-3">
+            <label>Code</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="menuForm.code">
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label>Description</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="menuForm.desc">
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label>Router</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="menuForm.router">
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <label>Parent</label>
+
+            <select class="form-control form-control-sm" [(ngModel)]="menuForm.parentKey" (change)="changeParent()">
+
+              <option value="0">-- Select Parent --</option>
+
+              <option *ngFor="let p of pMenuList" [value]="p.syskey">
+                {{p.desc}}
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-md-4 mb-3">
+
+            <label>Sub Parent</label>
+
+            <select class="form-control form-control-sm" [(ngModel)]="menuForm.subParentKey">
+
+              <option value="0">-- Select Sub Parent --</option>
+
+              <option *ngFor="let s of subPMenuList" [value]="s.syskey">
+                {{s.desc}}
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="card-footer">
+
+        <button class="btn btn-sm btn-success me-2" (click)="save()">
+          Save
+        </button>
+
+        <button class="btn btn-sm btn-danger me-2" (click)="confirmDelete()">
+          Delete
+        </button>
+
+        <button class="btn btn-sm btn-secondary" (click)="swt='1'">
+          Back
+        </button>
+
+      </div>
+
+    </div>
+
   </div>
+
 </div>
