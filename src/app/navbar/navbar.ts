@@ -35,6 +35,13 @@ export class Navbar implements OnInit {
   }
 
   /**
+   * Check if menu has any sub-items (child or subParent)
+   */
+  hasSubItems(menu: any): boolean {
+    return (menu?.child?.length > 0) || (menu?.subParent?.length > 0);
+  }
+
+  /**
    * Helper to build routerLink for menu, sub, child
    */
   getRouterLink(menu: any, sub?: any, child?: any): string {

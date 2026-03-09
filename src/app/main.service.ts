@@ -17,6 +17,8 @@ export class MainService {
         this.profile = JSON.parse(stored);
       }
     }
+    console.log(this.profile );
+    
     return this.profile;
   }
 

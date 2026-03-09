@@ -18,28 +18,40 @@
 
         <li class="nav-item dropdown" *ngFor="let menu of menus">
           
-          <!-- Top Level -->
-          <a *ngIf="menu.subParent?.length" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#">
+          <!-- Top Level - has children or subParent -->
+          <a *ngIf="hasSubItems(menu)" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#">
             {{ menu.title }}
           </a>
 
-          <a *ngIf="!menu.subParent?.length" class="nav-link" [routerLink]="getRouterLink(menu)">
+          <!-- Top Level - no children or subParent -->
+          <a *ngIf="!hasSubItems(menu)" class="nav-link" [routerLink]="getRouterLink(menu)">
             {{ menu.title }}
           </a>
 
-          <!-- Second Level -->
-          <ul class="dropdown-menu">
+          <!-- Dropdown Menu (handles both child and subParent) -->
+          <ul class="dropdown-menu" *ngIf="hasSubItems(menu)">
+            
+            <!-- Direct Children (if any) -->
+            <li *ngFor="let child of menu.child" class="dropdown-submenu position-relative">
+              <a class="dropdown-item" [routerLink]="getRouterLink(menu, child)">
+                {{ child.title }}
+              </a>
+            </li>
+
+            <!-- SubParent Level -->
             <li *ngFor="let sub of menu.subParent" class="dropdown-submenu position-relative">
 
+              <!-- SubParent with children -->
               <a *ngIf="sub.child?.length" class="dropdown-item dropdown-toggle">
                 {{ sub.title }}
               </a>
 
+              <!-- SubParent without children -->
               <a *ngIf="!sub.child?.length" class="dropdown-item" [routerLink]="getRouterLink(menu, sub)">
                 {{ sub.title }}
               </a>
 
-              <!-- Third Level -->
+              <!-- Third Level - SubParent's Children -->
               <ul class="dropdown-menu" *ngIf="sub.child?.length">
                 <li *ngFor="let child of sub.child">
                   <a class="dropdown-item" [routerLink]="getRouterLink(menu, sub, child)">

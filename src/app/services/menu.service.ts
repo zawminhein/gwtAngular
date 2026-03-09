@@ -9,7 +9,7 @@ import { Observable } from 'rxjs';
 })
 export class MenuService {
 
-  private baseUrl = `${environment.apiUrl}/menu`;
+  private baseUrl = `${environment.apiUrl}`;
 
   constructor(
     private http: HttpClient,
@@ -40,7 +40,7 @@ export class MenuService {
     };
 
     return this.http.post(
-      `${this.baseUrl}/getMenuList`,
+      `${this.baseUrl}/menu/getMenuList`,
       body,
       { headers: this.getHeaders(orgId) }
     );
@@ -52,7 +52,7 @@ export class MenuService {
   getMenuBySyskey(syskey: string, orgId: string): Observable<any> {
     const body = {syskey: syskey}
     return this.http.post(
-      `${this.baseUrl}/bindMenuData`, 
+      `${this.baseUrl}/menu/bindMenuData`, 
       body,
       { headers: this.getHeaders(orgId) }
     );
@@ -64,7 +64,7 @@ export class MenuService {
   saveMenu(menuData: any, orgId: string): Observable<any> {
 
     return this.http.post(
-      `${this.baseUrl}/menuSave`,
+      `${this.baseUrl}/menu/saveMenu`,
       menuData,
       { headers: this.getHeaders(orgId) }
     );
@@ -75,8 +75,9 @@ export class MenuService {
 
   deleteMenu(syskey: string, orgId: string): Observable<any> {
 
-    return this.http.get(
-      `${this.baseUrl}/deleteMenu/${syskey}`,
+    return this.http.post(
+      `${this.baseUrl}/menu/deleteMenu`,
+      { syskey: syskey },
       { headers: this.getHeaders(orgId) }
     );
 
@@ -87,7 +88,7 @@ export class MenuService {
   getParentMenus(orgId: string): Observable<any[]> {
 
     return this.http.get<any[]>(
-      `${this.baseUrl}/findParentMenus`,
+      `${this.baseUrl}/menu/findParentMenus`,
       { headers: this.getHeaders(orgId) }
     );
 
@@ -96,8 +97,51 @@ export class MenuService {
   /* ---------------- get parent and sub-parent menus ---------------- */
   getParentAndSubParent(orgId: string, body: any = {}): Observable<any> {
     return this.http.post<any>(
-      `${this.baseUrl}/getParentAndSubParent`,
+      `${this.baseUrl}/menu/getParentAndSubParent`,
       body, // send empty object if nothing provided
+      { headers: this.getHeaders(orgId) }
+    );
+  }
+
+  /* ---------------- read all access buttons/tabs ---------------- */
+  readAllAccessButtons(
+    orgId: string,
+    code: string = '',
+    description: string = '',
+    currentPage: number = 1,
+    pageSize: number = 10,
+    isButton: boolean = true
+  ): Observable<any> {
+
+    const body = {
+      code: code,
+      description: description,
+      currentPage: currentPage,
+      pageSize: pageSize,
+      isButton: isButton
+    };
+
+    return this.http.post<any>(
+      `${this.baseUrl}/menu/readAllAccessButtons`,
+      body,
+      { headers: this.getHeaders(orgId) }
+    );
+
+  }
+
+  /* ---------------- find menu order ---------------- */
+  findMenuOrder(orgId: string): Observable<any> {
+    return this.http.get(
+      `${this.baseUrl}/role/findAllMenuRight`,
+      { headers: this.getHeaders(orgId) }
+    );
+  }
+
+  /* ---------------- update menu order ---------------- */
+  updateMenuOrder(orgId: string, orderList: any[]): Observable<any> {
+    return this.http.post(
+      `${this.baseUrl}/menu/updateMenuOrder`,
+      { orderList },
       { headers: this.getHeaders(orgId) }
     );
   }
