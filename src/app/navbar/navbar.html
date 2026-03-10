@@ -11,7 +11,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="navbarContent">
+    <div class="collapse navbar-collapse" id="navbarContent" #navbarCollapse>
 
       <!-- LEFT SIDE MENU -->
       <ul class="navbar-nav me-auto">
@@ -24,7 +24,10 @@
           </a>
 
           <!-- Top Level - no children or subParent -->
-          <a *ngIf="!hasSubItems(menu)" class="nav-link" [routerLink]="getRouterLink(menu)">
+          <a *ngIf="!hasSubItems(menu)" 
+            class="nav-link" 
+            [routerLink]="getRouterLink(menu)"
+            (click)="closeNavbar()">
             {{ menu.title }}
           </a>
 
@@ -33,7 +36,10 @@
             
             <!-- Direct Children (if any) -->
             <li *ngFor="let child of menu.child" class="dropdown-submenu position-relative">
-              <a class="dropdown-item" [routerLink]="getRouterLink(menu, child)">
+              <a 
+                class="dropdown-item" 
+                [routerLink]="getRouterLink(menu, child)"
+                (click)="closeNavbar()">
                 {{ child.title }}
               </a>
             </li>
@@ -42,19 +48,28 @@
             <li *ngFor="let sub of menu.subParent" class="dropdown-submenu position-relative">
 
               <!-- SubParent with children -->
-              <a *ngIf="sub.child?.length" class="dropdown-item dropdown-toggle">
+              <a *ngIf="sub.child?.length" 
+                class="dropdown-item dropdown-toggle" 
+                (click)="toggleSubMenu($event)">
                 {{ sub.title }}
               </a>
 
               <!-- SubParent without children -->
-              <a *ngIf="!sub.child?.length" class="dropdown-item" [routerLink]="getRouterLink(menu, sub)">
+              <a 
+                *ngIf="!sub.child?.length" 
+                class="dropdown-item" 
+                [routerLink]="getRouterLink(menu, sub)" 
+                (click)="closeNavbar()">
                 {{ sub.title }}
               </a>
 
               <!-- Third Level - SubParent's Children -->
               <ul class="dropdown-menu" *ngIf="sub.child?.length">
                 <li *ngFor="let child of sub.child">
-                  <a class="dropdown-item" [routerLink]="getRouterLink(menu, sub, child)">
+                  <a 
+                    class="dropdown-item" 
+                    [routerLink]="getRouterLink(menu, sub, child)"
+                    (click)="closeNavbar()">
                     {{ child.title }}
                   </a>
                 </li>

@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class MainService {
-  private profile: any;
+  private profile: any = null;
 
   setProfile(data: any) {
     this.profile = data;
@@ -13,12 +13,8 @@ export class MainService {
   getProfile() {
     if (!this.profile) {
       const stored = localStorage.getItem('profile');
-      if (stored) {
-        this.profile = JSON.parse(stored);
-      }
-    }
-    console.log(this.profile );
-    
+      this.profile = stored ? JSON.parse(stored) : null;
+    }    
     return this.profile;
   }
 
