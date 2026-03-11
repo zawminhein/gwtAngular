@@ -1,12 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { RoleService } from '../services/role.service';
+import { RoleService } from '../../services/role.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { ToastService } from '../services/toast.service';
-// import * as bootstrap from 'bootstrap';
-// import * as Popper from '@popperjs/core';
+import { ToastService } from '../../services/toast.service';
 
 declare var $: any;
 
@@ -200,37 +197,6 @@ export class RoleSetup implements OnInit {
     }
     return true;
   }
-
-  // Generic SnackBar message function
-  // showMessage(message: string) {
-  //   this.snackBar.open(message, 'Close', {
-  //     duration: 3000,       // auto-close after 3 seconds
-  //     horizontalPosition: 'right',
-  //     verticalPosition: 'top',
-  //   });
-  // }
-  // showMessage(msg: string, type: 'success' | 'error' | 'info' = 'info') {
-  //   const toastEl = document.getElementById('liveToast') as HTMLElement;
-  //   const messageEl = document.getElementById('toastMessage') as HTMLElement;
-
-  //   // Set message
-  //   messageEl.innerText = msg;
-
-  //   // Change background based on type
-  //   toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary');
-  //   if(type === 'success') toastEl.classList.add('text-bg-success');
-  //   else if(type === 'error') toastEl.classList.add('text-bg-danger');
-  //   else toastEl.classList.add('text-bg-primary');
-
-  //   // Show toast by adding 'show' class
-  //   toastEl.classList.add('show');
-
-  //   // Auto-hide after 3 seconds
-  //   setTimeout(() => {
-  //     toastEl.classList.remove('show');
-  //   }, 3000);
-  // }
-
   // ---------- READ ROLE ----------
   read(roleData: any) {
     this.ywa = '2';
@@ -317,33 +283,6 @@ export class RoleSetup implements OnInit {
   }
 
   // ---------- DELETE ----------
-  // deleteRole() {
-  //   const orgId = localStorage.getItem('organizationID') || '';
-  //   const id = this._obj.syskey;
-  //   if (!id) return;
-
-  //   if (!confirm('Are you sure?')) return;
-
-  //   this.isLoading = true;
-  //   this.roleService.deleteRole(id, orgId).subscribe({
-  //     next: (data: any) => {
-  //       this.isLoading = false;
-  //       if (data.message === 'SUCCESS') {
-  //         this.toast.show('Deleted successfully!', 'success');
-  //         this.clear();
-  //         this.ywa = '1';
-  //         this.findAllRoles();
-  //       } else {
-  //         this.toast.show('Deleting failed!', 'error');
-  //       }
-  //     },
-  //     error: () => {
-  //       this.isLoading = false;
-  //       this.toast.show('Something went wrong!', 'error');
-  //     }
-  //   });
-  // }
-
   deleteRole() {
     const id = this._obj.syskey;
     if (!id) return;

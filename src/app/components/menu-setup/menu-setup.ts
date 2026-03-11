@@ -1,9 +1,9 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MenuService } from '../services/menu.service';
-import { ToastService } from '../services/toast.service';
-import { MainService } from '../main.service';
+import { MenuService } from '../../services/menu.service';
+import { ToastService } from '../../services/toast.service';
+import { MainService } from '../../services/main.service';
 
 @Component({
   selector: 'app-menu-setup',

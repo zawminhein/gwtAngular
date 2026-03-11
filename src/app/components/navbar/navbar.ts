@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { MainService } from '../main.service';
+import { MainService } from '../../services/main.service';
 import { NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
