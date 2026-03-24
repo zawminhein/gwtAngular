@@ -80,7 +80,20 @@
 
         </li>
 
+        <li class="nav-item dropdown">
+          <a  class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#">Schedule</a>
+
+          <ul class="dropdown-menu">
+            <li>
+              <a [routerLink]="['/dashboard/room']"  class="dropdown-item">Room</a>
+            </li>
+            <li><a href="#" class="dropdown-item">Doctor Schedule</a></li>
+            <li><a href="#" class="dropdown-item">Doctor Setup</a></li>
+          </ul>
+        </li>
+
       </ul>
+
 
       <!-- RIGHT SIDE USER INFO -->
       <ul class="navbar-nav align-items-center">

@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8080/iOPD'
+  apiUrl: 'http://localhost:8080/iOPD',
+  roomApiUrl: 'http://localhost:8080/iOPD'
 };

@@ -92,6 +92,8 @@ export class UserList implements OnInit, OnDestroy {
     this.userService.getUsers(this.orgId).subscribe({
       next: (res: any) => {
         this.allUsers = res?.userlist ?? [];
+        console.log(this.allUsers);
+        
         this.applyFilter();
       },
       error: () => this.toast.show('Failed to load users', 'error'),
