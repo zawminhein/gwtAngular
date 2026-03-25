@@ -38,7 +38,7 @@ export class RoomService {
     );
   }
 
-  deleteRoom(syskey: number, orgId: string): Observable<{ success: boolean }> {
+  deleteRoom(syskey: string, orgId: string): Observable<{ success: boolean }> {
     const body = { syskey };  // send as JSON
     return this.http.post<{ success: boolean }>(
       `${this.baseUrl}/deleteRoom`,

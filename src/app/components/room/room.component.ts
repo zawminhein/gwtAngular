@@ -6,6 +6,14 @@ import { Router } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 
+/* ================= MODEL ================= */
+interface Room {
+  syskey?: string;
+  room: string;
+  building: string;
+  roomlevel?: string;
+}
+
 @Component({
   selector: 'app-room.component',
   standalone: true,
@@ -15,27 +23,22 @@ import { ToastService } from '../../services/toast.service';
 })
 export class RoomComponent implements OnInit {
 
-  roomList: any[] = [];          // all rooms from API
-  filteredRooms: any[] = [];     // filtered by search
-  paginatedRooms: any[] = [];    // sliced for current page
+  /* ================= DATA ================= */
+  roomList: Room[] = [];
+  filteredRooms: Room[] = [];
+  paginatedRooms: Room[] = [];
 
-  orgId = '';
+  roomForm: Room = { room: '', building: '', syskey: '' };
 
   searchText = '';
+  orgId = '';
+
   activeTab: 'list' | 'form' = 'list';
-  roomForm: any = {};
   isEditMode = false;
   isLoading = false;
-
   isSubmitted = false;
 
-  // Pagination
-  pager = {
-    page: 1,
-    size: 10,
-    total: 0
-  };
-
+  /* ================= PAGINATION (KEEP HTML COMPATIBLE) ================= */
   _pagerDataBtn = {
     currentPage: 1,
     size: 10,
@@ -49,134 +52,130 @@ export class RoomComponent implements OnInit {
   constructor(
     private router: Router,
     private roomService: RoomService,
-    private cd: ChangeDetectorRef,
-    private toast: ToastService
+    private toast: ToastService,
+    private cd: ChangeDetectorRef
   ) {}
 
+  /* ================= INIT ================= */
   ngOnInit(): void {
-    this.initProfile();
-    this.loadRoomData();
+    if (this.initProfile()) {
+      this.loadRoomData();
+    }
   }
 
-  private initProfile(): void {
+  private initProfile(): boolean {
     const profile = localStorage.getItem('profile');
+
     if (!profile) {
       this.router.navigate(['/login']);
-      return;
+      return false;
     }
+
     this.orgId = JSON.parse(profile)?.organizationID ?? '';
+    return !!this.orgId;
   }
 
+  /* ================= DATA ================= */
   loadRoomData(): void {
+    this.isLoading = true;
     this.roomService.getRoomData(this.orgId).subscribe({
-      next: (res) => {
+      next: res => {
         this.roomList = res?.roomList ?? [];
         this.filteredRooms = [...this.roomList];
-
-        this._pagerDataBtn.totalItems = this.filteredRooms.length;
-        this._pagerDataBtn.currentPage = 1;
-        this.updatePaginationButtons();
+        console.log('room list', this.filteredRooms);
+        
+        this.isLoading = false;
+        this.initPagination();
+        this.cd.detectChanges();
       },
-      error: (err) => console.error(err)
+      error: () => {
+        console.error;
+        this.isLoading = false;
+      }
     });
   }
 
   applyFilter(): void {
-    const keyword = this.searchText.toLowerCase();
+    const keyword = this.searchText.toLowerCase().trim();
 
     this.filteredRooms = this.roomList.filter(r =>
       r.room?.toLowerCase().includes(keyword) ||
       r.building?.toLowerCase().includes(keyword)
     );
 
-    this._pagerDataBtn.totalItems = this.filteredRooms.length;
-    this._pagerDataBtn.currentPage = 1;
-    this.updatePaginationButtons();
-  }  
+    this.initPagination();
+  }
 
   clearSearch(): void {
     this.searchText = '';
-    this.applyFilter();
-    this.loadRoomData();
+    this.filteredRooms = [...this.roomList];
+    this.initPagination();
   }
 
-  openEdit(room: any): void {
-    this.roomForm = { ...room };
-    this.isEditMode = true;
+  /* ================= FORM ================= */
+  openNew(): void {
+    this.resetForm();
     this.activeTab = 'form';
   }
 
-  openNew(): void {
-    this.roomForm = {};
-    this.isEditMode = false;
-    this.isSubmitted = false;
+  openEdit(room: Room): void {
+    this.roomForm = { ...room };
+    this.isEditMode = true;
     this.activeTab = 'form';
   }
 
   save(): void {
     this.isSubmitted = true;
 
-    if (!this.roomForm?.room || !this.roomForm?.building) {
-      return;
-    }
+    if (!this.roomForm.room || !this.roomForm.building) return;
 
     this.isLoading = true;
 
     this.roomService.saveRoom(this.roomForm, this.orgId).pipe(
       switchMap((res: any) => {
-
         if (!res?.success) {
-          this.toast.show(res.message || 'Failed to save room', 'error');
-          this.isLoading = false;
-          throw new Error(res.message || 'Save failed');
+          this.toast.show(res.message || 'Save failed', 'error');
+          throw new Error();
         }
 
-        this.roomForm.syskey = res.syskey;
-
-        if (res.action === 'insert') {
-          this.toast.show('Room Saved Successfully', 'success');
-        } else {
-          this.toast.show('Room Updated Successfully', 'success');
-        }
+        this.toast.show(
+          res.action === 'insert'
+            ? 'Room Saved Successfully'
+            : 'Room Updated Successfully',
+          'success'
+        );
 
         return this.roomService.getRoomData(this.orgId);
       })
     ).subscribe({
-      next: (data: any) => {
-        this.roomList = data?.roomList ?? [];
-        this.filteredRooms = [...this.roomList];
-
-        this.initButtonPagination();
-
-        this.activeTab = 'list';
-        this.isLoading = false;
-        this.isSubmitted = false; // reset
-        this.cd.detectChanges();
-      },
-      error: () => {
-        this.isLoading = false;
-        this.cd.detectChanges();
-      }
+      next: res => this.afterSave(res),
+      error: () => this.isLoading = false
     });
   }
 
+  private afterSave(res: any): void {
+    this.roomList = res?.roomList ?? [];
+    this.filteredRooms = [...this.roomList];
+
+    this.initPagination();
+    this.resetForm();
+    this.cd.detectChanges();
+
+    this.activeTab = 'list';
+    this.isLoading = false;
+  }
+
   delete(): void {
-    if (!this.roomForm?.syskey) {
-      this.toast.show('No room selected to delete', 'error');
+    if (!this.roomForm.syskey) {
+      this.toast.show('No room selected', 'error');
       return;
     }
 
-    // Show confirmation modal (Bootstrap example)
-    const modalEl = document.getElementById('confirmRoomDeleteModal');
-    if (modalEl) {
-      const modal = new (window as any).bootstrap.Modal(modalEl);
-      modal.show();
-    }
+    this.openModal('confirmRoomDeleteModal');
   }
 
-  // Confirm delete from modal
   confirmDelete(): void {
-    if (!this.roomForm?.syskey) return;
+    if (!this.roomForm.syskey) return;
 
     this.isLoading = true;
 
@@ -184,76 +183,76 @@ export class RoomComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           this.isLoading = false;
+          this.closeModal('confirmRoomDeleteModal');
 
-          // Hide modal
-          const modalEl = document.getElementById('confirmRoomDeleteModal');
-          const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
-          modal?.hide();
-
-          if (res?.success) {
-            this.toast.show('Room deleted successfully', 'success');
-            // Remove from list
-            this.roomList = this.roomList.filter(r => r.syskey !== this.roomForm.syskey);
-            this.filteredRooms = [...this.roomList];
-            this.initButtonPagination();
-
-            // Reset form and switch to list
-            this.roomForm = {};
-            this.activeTab = 'list';
-            this.cd.detectChanges();
-          } else {
-            this.toast.show('Failed to delete room', 'error');
+          if (!res?.success) {
+            this.toast.show('Delete failed', 'error');
+            return;
           }
-        },
-        error: (err) => {
+
+          this.toast.show('Room deleted successfully', 'success');
+
+          this.roomList = this.roomList.filter(r => r.syskey !== this.roomForm.syskey);
+          this.filteredRooms = [...this.roomList];
+
+          this.initPagination();
+          this.resetForm();
+
+          this.cd.detectChanges();
+          this.activeTab = 'list';
           this.isLoading = false;
-          console.error('Delete error:', err);
-        }
+        },
+        error: () => this.isLoading = false
       });
   }
 
-  openRoomSearch(): void {
-    const modalEl = document.getElementById('roomSearchModal');
-    if (modalEl) {
-      const modal = new (window as any).bootstrap.Modal(modalEl);
-      modal.show();
-    }
+  private resetForm(): void {
+    this.roomForm = { room: '', building: '' };
+    this.isEditMode = false;
+    this.isSubmitted = false;
   }
 
-  selectRoom(room: any): void {
-    // fill form
-    this.roomForm.room = room.room;
-    this.roomForm.building = room.building;
-    this.roomForm.syskey = room.syskey;
+  /* ================= MODAL ================= */
+  openRoomSearch(): void {
+    this.openModal('roomSearchModal');
+  }
 
-    // close modal
-    const modalEl = document.getElementById('roomSearchModal');
-    const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+  selectRoom(room: Room): void {
+    this.roomForm = { ...room };
+    this.closeModal('roomSearchModal');
+  }
+
+  private openModal(id: string): void {
+    const el = document.getElementById(id);
+    if (el) new (window as any).bootstrap.Modal(el).show();
+  }
+
+  private closeModal(id: string): void {
+    const el = document.getElementById(id);
+    const modal = (window as any).bootstrap.Modal.getInstance(el);
     modal?.hide();
   }
 
-  // ================= PAGINATION =================
-  updatePaginationButtons(): void {
-    const start = (this._pagerDataBtn.currentPage - 1) * this._pagerDataBtn.size;
-    const end = Math.min(start + this._pagerDataBtn.size, this._pagerDataBtn.totalItems);
-
-    this.paginatedRooms = this.filteredRooms.slice(start, end);
-
-    this._startItemBtn = start + 1;
-    this._endItemBtn = end;
-    this._totalPagesBtn = Math.ceil(this._pagerDataBtn.totalItems / this._pagerDataBtn.size) || 1;
-
-    this.cd.detectChanges();
-  }
-
-  // Call this after loadRoomData() or applyFilter()
-  initButtonPagination(): void {
+  /* ================= PAGINATION ================= */
+  initPagination(): void {
     this._pagerDataBtn.currentPage = 1;
     this._pagerDataBtn.totalItems = this.filteredRooms.length;
     this.updatePaginationButtons();
   }
 
-  // Method for button clicks
+  updatePaginationButtons(): void {
+    const start = (this._pagerDataBtn.currentPage - 1) * this._pagerDataBtn.size;
+    const end = Math.min(start + this._pagerDataBtn.size, this._pagerDataBtn.totalItems);
+
+    this.paginatedRooms = this.filteredRooms.slice(start, end);
+    console.log('paginatedRooms', this.paginatedRooms);
+    
+    this._startItemBtn = start + 1;
+    this._endItemBtn = end;
+    this._totalPagesBtn =
+      Math.ceil(this._pagerDataBtn.totalItems / this._pagerDataBtn.size) || 1;
+  }
+
   changeButtonPage(page: number): void {
     if (page < 1) page = 1;
     if (page > this._totalPagesBtn) page = this._totalPagesBtn;
