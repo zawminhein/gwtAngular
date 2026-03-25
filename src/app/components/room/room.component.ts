@@ -92,8 +92,7 @@ export class RoomComponent implements OnInit {
     this._pagerDataBtn.totalItems = this.filteredRooms.length;
     this._pagerDataBtn.currentPage = 1;
     this.updatePaginationButtons();
-  }
-  
+  }  
 
   clearSearch(): void {
     this.searchText = '';
@@ -118,7 +117,7 @@ export class RoomComponent implements OnInit {
     this.isSubmitted = true;
 
     if (!this.roomForm?.room || !this.roomForm?.building) {
-      return; // ❌ stop if invalid
+      return;
     }
 
     this.isLoading = true;
@@ -211,6 +210,26 @@ export class RoomComponent implements OnInit {
           console.error('Delete error:', err);
         }
       });
+  }
+
+  openRoomSearch(): void {
+    const modalEl = document.getElementById('roomSearchModal');
+    if (modalEl) {
+      const modal = new (window as any).bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  selectRoom(room: any): void {
+    // fill form
+    this.roomForm.room = room.room;
+    this.roomForm.building = room.building;
+    this.roomForm.syskey = room.syskey;
+
+    // close modal
+    const modalEl = document.getElementById('roomSearchModal');
+    const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+    modal?.hide();
   }
 
   // ================= PAGINATION =================

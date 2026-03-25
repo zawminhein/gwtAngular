@@ -24,7 +24,7 @@ export const routes: Routes = [
       { path: 'setup/securityPolicy/user', component: UserList },
       { path: 'setup/securityPolicy/role', component: RoleSetup },
       { path: 'setup/securityPolicy/menu', component: MenuSetup },
-      { path: 'room', component: RoomComponent },
+      { path: 'schedule/room', component: RoomComponent },
     //   { path: '', redirectTo: 'setup/securityPolicy/user', pathMatch: 'full' }
 
     ]
